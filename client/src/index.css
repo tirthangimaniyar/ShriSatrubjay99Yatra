@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Poppins', 'Noto Sans Gujarati', sans-serif;
+  }
+}
+
+/* Custom religious ornamentation and gold accents */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #FFE29F 0%, #D4AF37 50%, #996C12 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #DFB75A 0%, #C89326 50%, #946914 100%);
+}
+
+.maroon-gradient-bg {
+  background: linear-gradient(135deg, #7A0C1E 0%, #4D030F 100%);
+}
+
+.purple-gradient-bg {
+  background: linear-gradient(135deg, #440D4A 0%, #200424 100%);
+}
+
+.gold-border {
+  border-color: #D4AF37;
+}
+
+.ornate-border {
+  border: 2px solid #C89326;
+  position: relative;
+}
+
+.ornate-border::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border: 1px dashed rgba(200, 147, 38, 0.45);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Devotional glow effect */
+.divine-glow {
+  filter: drop-shadow(0 0 25px rgba(212, 175, 55, 0.5));
+}
+
+/* Printable area */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white !important;
+  }
+}
