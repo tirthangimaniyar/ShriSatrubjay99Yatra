@@ -126,7 +126,7 @@ exports.getDashboardStats = async (req, res) => {
 // GET /api/admin/db-status (Detailed Production MongoDB Atlas & TTL Index Verification)
 exports.getDbStatus = async (req, res) => {
   try {
-    const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified } = require('../config/db');
+    const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified, getMongoConfig } = require('../config/db');
     let indexes = [];
     let activeRegistrations = 0;
     let totalInDb = 0;
@@ -138,21 +138,17 @@ exports.getDbStatus = async (req, res) => {
       totalInDb = await Registration.countDocuments();
     }
 
-    const uri = process.env.MONGODB_URI || '';
-    let uriHost = 'default-local';
-    if (uri.includes('@')) {
-      uriHost = uri.split('@')[1].split('/')[0];
-    } else if (uri) {
-      uriHost = uri.split('://')[1] ? uri.split('://')[1].split('/')[0] : 'custom';
-    }
+    const mongoConfig = getMongoConfig ? getMongoConfig() : { hasUri: Boolean(process.env.MONGODB_URI), uri: process.env.MONGODB_URI || '', host: 'unknown' };
 
     res.json({
       success: true,
       database: {
         connected: isConnectedToMongo(),
-        hasMongoUri: Boolean(process.env.MONGODB_URI),
-        uriType: uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (uri ? 'mongodb' : 'none'),
-        uriHost,
+        hasMongoUri: mongoConfig.hasUri,
+        envKeyFound: mongoConfig.foundKey,
+        uriType: mongoConfig.uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (mongoConfig.uri ? 'mongodb' : 'none'),
+        uriHost: mongoConfig.host,
+        databaseName: mongoConfig.dbName,
         ttlIndexVerified: isTtlIndexVerified(),
         lastError: getLastMongoError() ? getLastMongoError().message : null,
         activeRegistrations,

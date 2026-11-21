@@ -5,6 +5,8 @@ const path = require('path');
 let isConnectedToMongo = false;
 let lastMongoError = null;
 let ttlIndexVerified = false;
+let reconnectTimer = null;
+let isConnecting = false;
 
 const dataDir = path.join(__dirname, '..', 'data');
 const dbFilePath = path.join(dataDir, 'db.json');
@@ -66,6 +68,71 @@ class JsonStore {
 
 const jsonStore = new JsonStore();
 
+// Inspect and resolve MongoDB URI from various environment variable keys
+const getMongoConfig = () => {
+  const envKeys = ['MONGODB_URI', 'MONGO_URI', 'DATABASE_URL', 'MONGODB_URL', 'ATLAS_URI'];
+  let rawUri = '';
+  let foundKey = null;
+
+  for (const key of envKeys) {
+    const val = process.env[key];
+    if (val && typeof val === 'string' && val.trim().length > 0) {
+      rawUri = val.trim();
+      foundKey = key;
+      break;
+    }
+  }
+
+  // Strip accidental enclosing single or double quotes
+  if (rawUri.startsWith('"') && rawUri.endsWith('"')) {
+    rawUri = rawUri.slice(1, -1).trim();
+  } else if (rawUri.startsWith("'") && rawUri.endsWith("'")) {
+    rawUri = rawUri.slice(1, -1).trim();
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+  
+  // In development, default to localhost if no URI is supplied
+  const uri = rawUri || (isProduction ? '' : 'mongodb://127.0.0.1:27017/palitana_99_yatra');
+
+  let maskedUri = 'none';
+  let host = 'not-configured';
+  let dbName = 'palitana_99_yatra';
+
+  if (uri) {
+    maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
+    try {
+      if (uri.includes('@')) {
+        const afterAt = uri.split('@')[1];
+        host = afterAt.split('/')[0].split('?')[0];
+        const afterSlash = afterAt.split('/')[1];
+        if (afterSlash) {
+          dbName = afterSlash.split('?')[0] || 'palitana_99_yatra';
+        }
+      } else if (uri.includes('://')) {
+        const afterScheme = uri.split('://')[1];
+        host = afterScheme.split('/')[0].split('?')[0];
+        const afterSlash = afterScheme.split('/')[1];
+        if (afterSlash) {
+          dbName = afterSlash.split('?')[0] || 'palitana_99_yatra';
+        }
+      }
+    } catch (_) {
+      // Fallback if parsing fails
+    }
+  }
+
+  return {
+    uri,
+    maskedUri,
+    foundKey,
+    hasUri: Boolean(rawUri),
+    host,
+    dbName,
+    isProduction
+  };
+};
+
 const verifyAndCreateIndexes = async () => {
   try {
     const Registration = require('../models/Registration');
@@ -76,7 +143,7 @@ const verifyAndCreateIndexes = async () => {
     const ttlIdx = indexes.find(idx => idx.key && idx.key.expiresAt !== undefined && idx.expireAfterSeconds === 0);
     if (ttlIdx) {
       ttlIndexVerified = true;
-      console.log('MongoDB TTL Index on expiresAt (expireAfterSeconds: 0) verified successfully in database!');
+      console.log('MongoDB TTL Index on expiresAt (expireAfterSeconds: 0) verified successfully in Atlas database!');
     } else {
       console.warn('TTL Index created but not yet visible in indexes list.');
     }
@@ -88,40 +155,84 @@ const verifyAndCreateIndexes = async () => {
 };
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/palitana_99_yatra';
-  const maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
+  if (isConnecting) return;
+  isConnecting = true;
+
+  const config = getMongoConfig();
+
+  if (!config.uri) {
+    const errMsg = 'No MongoDB URI configured in environment variables (checked MONGODB_URI, MONGO_URI, DATABASE_URL, MONGODB_URL, ATLAS_URI). Please add MONGODB_URI in your Render Dashboard (Web Service -> Environment).';
+    lastMongoError = new Error(errMsg);
+    isConnectedToMongo = false;
+    isConnecting = false;
+    console.error(`CRITICAL: [MongoDB] ${errMsg}`);
+    scheduleReconnect();
+    return;
+  }
 
   try {
-    console.log(`Connecting to MongoDB at: ${maskedUri}...`);
-    // Connect with a 15-second server selection timeout to handle Atlas DNS and TLS handshakes
-    await mongoose.connect(uri, {
+    console.log(`[MongoDB] Connecting to MongoDB (${config.foundKey || 'default'}) at: ${config.maskedUri}...`);
+    
+    // Connect with 15-second timeout and robust pool options
+    await mongoose.connect(config.uri, {
       serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
     });
+
     isConnectedToMongo = true;
     lastMongoError = null;
-    console.log('MongoDB Connected Successfully to real database!');
+    console.log(`[MongoDB] Connected Successfully to database "${config.dbName}" on host "${config.host}"!`);
     await verifyAndCreateIndexes();
+
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
   } catch (err) {
     lastMongoError = err;
-    console.warn(`MongoDB connection failed: ${err.message}`);
-    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-      console.error('CRITICAL: Running in production environment but could not connect to MongoDB Atlas!');
-    } else {
-      console.log('Activating local JSON store fallback for local development.');
-    }
     isConnectedToMongo = false;
+    console.error(`[MongoDB] Connection failed to ${config.maskedUri}: ${err.message}`);
+    
+    if (config.isProduction) {
+      console.error('[MongoDB] CRITICAL: Running in production environment but could not connect to MongoDB Atlas!');
+    } else {
+      console.log('[MongoDB] Activating local JSON store fallback for local development.');
+    }
+
+    scheduleReconnect();
+  } finally {
+    isConnecting = false;
   }
+};
+
+const scheduleReconnect = () => {
+  if (reconnectTimer) return;
+  // Retry every 15 seconds in case Atlas or network was temporarily unavailable or env var was updated
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (!isConnectedToMongo) {
+      console.log('[MongoDB] Attempting reconnection...');
+      connectDB();
+    }
+  }, 15000);
 };
 
 // Monitor MongoDB connection events
 mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected.');
+  console.warn('[MongoDB] Connection disconnected.');
   isConnectedToMongo = false;
+  scheduleReconnect();
 });
 
 mongoose.connection.on('connected', () => {
-  console.log('MongoDB connection active.');
+  console.log('[MongoDB] Connection active.');
   isConnectedToMongo = true;
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('[MongoDB] Runtime error:', err.message);
+  lastMongoError = err;
 });
 
 module.exports = {
@@ -129,6 +240,7 @@ module.exports = {
   isConnectedToMongo: () => isConnectedToMongo,
   getLastMongoError: () => lastMongoError,
   isTtlIndexVerified: () => ttlIndexVerified,
+  getMongoConfig,
   verifyAndCreateIndexes,
   jsonStore
 };

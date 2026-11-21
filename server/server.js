@@ -68,16 +68,8 @@ app.use('/api/settings', settingRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified } = require('./config/db');
-  const uri = process.env.MONGODB_URI || '';
-  let uriHost = 'default-local';
-  if (uri) {
-    if (uri.includes('@')) {
-      uriHost = uri.split('@')[1].split('/')[0];
-    } else {
-      uriHost = uri.split('://')[1] ? uri.split('://')[1].split('/')[0] : 'custom';
-    }
-  }
+  const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified, getMongoConfig } = require('./config/db');
+  const mongoConfig = getMongoConfig ? getMongoConfig() : { hasUri: Boolean(process.env.MONGODB_URI), uri: process.env.MONGODB_URI || '', host: 'unknown' };
 
   res.status(200).json({
     status: 'ok',
@@ -86,9 +78,11 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0',
     database: {
       connected: isConnectedToMongo(),
-      hasMongoUri: Boolean(process.env.MONGODB_URI),
-      uriType: uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (uri ? 'mongodb' : 'none'),
-      uriHost,
+      hasMongoUri: mongoConfig.hasUri,
+      envKeyFound: mongoConfig.foundKey,
+      uriType: mongoConfig.uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (mongoConfig.uri ? 'mongodb' : 'none'),
+      uriHost: mongoConfig.host,
+      databaseName: mongoConfig.dbName,
       ttlIndexVerified: isTtlIndexVerified(),
       lastError: getLastMongoError() ? getLastMongoError().message : null
     }
