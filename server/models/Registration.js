@@ -157,7 +157,6 @@ const RegistrationSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
-    index: true,
   },
   updatedAt: {
     type: Date,
@@ -165,7 +164,7 @@ const RegistrationSchema = new mongoose.Schema({
   }
 });
 
-// MongoDB TTL Index: Automatically expire records when expiresAt has passed
+// MongoDB TTL Index: Automatically expire records when expiresAt has passed (expireAfterSeconds: 0)
 RegistrationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Registration', RegistrationSchema);
