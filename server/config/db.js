@@ -68,6 +68,110 @@ class JsonStore {
 
 const jsonStore = new JsonStore();
 
+const safeDecode = (str) => {
+  if (!str) return '';
+  try {
+    return decodeURIComponent(str);
+  } catch (_) {
+    return str;
+  }
+};
+
+const safeEncode = (str) => {
+  if (!str) return '';
+  return encodeURIComponent(safeDecode(str));
+};
+
+// Robust URI parser that automatically repairs unencoded password special characters (like @),
+// removes accidental documentation angle brackets (<password>, <cluster>), and ensures query params.
+const parseAndFixMongoUri = (rawUri) => {
+  if (!rawUri || typeof rawUri !== 'string' || !rawUri.includes('://')) {
+    return { uri: rawUri, host: 'invalid', dbName: 'palitana_99_yatra', user: '' };
+  }
+
+  let cleaned = rawUri.trim();
+  // Strip enclosing single/double quotes
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  const schemeMatch = cleaned.match(/^(mongodb(?:\+srv)?:\/\/)(.*)$/i);
+  if (!schemeMatch) {
+    return { uri: cleaned, host: 'custom', dbName: 'palitana_99_yatra', user: '' };
+  }
+
+  const scheme = schemeMatch[1].toLowerCase();
+  const rest = schemeMatch[2];
+
+  // Find the LAST '@' to separate credentials from cluster host
+  const lastAtIndex = rest.lastIndexOf('@');
+  if (lastAtIndex === -1) {
+    // No credentials provided
+    let hostPart = rest;
+    let queryPart = '';
+    const qIdx = hostPart.indexOf('?');
+    if (qIdx !== -1) {
+      queryPart = hostPart.substring(qIdx);
+      hostPart = hostPart.substring(0, qIdx);
+    }
+    const slashIdx = hostPart.indexOf('/');
+    let host = slashIdx !== -1 ? hostPart.substring(0, slashIdx) : hostPart;
+    let dbName = slashIdx !== -1 ? hostPart.substring(slashIdx + 1) : '';
+    host = host.replace(/^<+|>+$/g, '').trim();
+    dbName = (dbName || 'palitana_99_yatra').replace(/^<+|>+$/g, '').trim();
+    const fixedUri = `${scheme}${host}/${dbName}${queryPart}`;
+    return { uri: fixedUri, host, dbName, user: '' };
+  }
+
+  const credPart = rest.substring(0, lastAtIndex);
+  const hostAndRest = rest.substring(lastAtIndex + 1);
+
+  // Split username and password at the FIRST ':'
+  const firstColon = credPart.indexOf(':');
+  let username = firstColon !== -1 ? credPart.substring(0, firstColon) : credPart;
+  let password = firstColon !== -1 ? credPart.substring(firstColon + 1) : '';
+
+  // Remove accidental documentation placeholder angle brackets
+  username = username.replace(/^<+|>+$/g, '').trim();
+  password = password.replace(/^<+|>+$/g, '').trim();
+
+  // Split host, dbName, and query params
+  let hostPart = hostAndRest;
+  let queryPart = '';
+  const qIdx = hostPart.indexOf('?');
+  if (qIdx !== -1) {
+    queryPart = hostPart.substring(qIdx);
+    hostPart = hostPart.substring(0, qIdx);
+  }
+
+  const slashIdx = hostPart.indexOf('/');
+  let host = slashIdx !== -1 ? hostPart.substring(0, slashIdx) : hostPart;
+  let dbName = slashIdx !== -1 ? hostPart.substring(slashIdx + 1) : '';
+
+  host = host.replace(/^<+|>+$/g, '').trim();
+  dbName = (dbName || 'palitana_99_yatra').replace(/^<+|>+$/g, '').trim();
+
+  // URL-encode username and password (e.g. converting '@' to '%40')
+  const encodedUser = safeEncode(username);
+  const encodedPass = safeEncode(password);
+
+  let fixedUri = `${scheme}${encodedUser}`;
+  if (encodedPass) {
+    fixedUri += `:${encodedPass}`;
+  }
+  fixedUri += `@${host}`;
+  if (dbName) {
+    fixedUri += `/${dbName}`;
+  }
+  if (queryPart) {
+    fixedUri += queryPart;
+  } else if (scheme.includes('+srv') && !dbName.includes('?')) {
+    fixedUri += '?retryWrites=true&w=majority';
+  }
+
+  return { uri: fixedUri, host, dbName, user: username };
+};
+
 // Inspect and resolve MongoDB URI from various environment variable keys
 const getMongoConfig = () => {
   const envKeys = ['MONGODB_URI', 'MONGO_URI', 'DATABASE_URL', 'MONGODB_URL', 'ATLAS_URI'];
@@ -83,52 +187,25 @@ const getMongoConfig = () => {
     }
   }
 
-  // Strip accidental enclosing single or double quotes
-  if (rawUri.startsWith('"') && rawUri.endsWith('"')) {
-    rawUri = rawUri.slice(1, -1).trim();
-  } else if (rawUri.startsWith("'") && rawUri.endsWith("'")) {
-    rawUri = rawUri.slice(1, -1).trim();
-  }
-
   const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
   
-  // In development, default to localhost if no URI is supplied
-  const uri = rawUri || (isProduction ? '' : 'mongodb://127.0.0.1:27017/palitana_99_yatra');
-
-  let maskedUri = 'none';
-  let host = 'not-configured';
-  let dbName = 'palitana_99_yatra';
-
-  if (uri) {
-    maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
-    try {
-      if (uri.includes('@')) {
-        const afterAt = uri.split('@')[1];
-        host = afterAt.split('/')[0].split('?')[0];
-        const afterSlash = afterAt.split('/')[1];
-        if (afterSlash) {
-          dbName = afterSlash.split('?')[0] || 'palitana_99_yatra';
-        }
-      } else if (uri.includes('://')) {
-        const afterScheme = uri.split('://')[1];
-        host = afterScheme.split('/')[0].split('?')[0];
-        const afterSlash = afterScheme.split('/')[1];
-        if (afterSlash) {
-          dbName = afterSlash.split('?')[0] || 'palitana_99_yatra';
-        }
-      }
-    } catch (_) {
-      // Fallback if parsing fails
-    }
+  if (!rawUri && !isProduction) {
+    rawUri = 'mongodb://127.0.0.1:27017/palitana_99_yatra';
   }
+
+  const parsed = parseAndFixMongoUri(rawUri);
+  const uri = parsed.uri || '';
+  const maskedUri = uri ? uri.replace(/:([^:@]+)@/, ':****@') : 'none';
 
   return {
     uri,
+    rawUri,
     maskedUri,
     foundKey,
     hasUri: Boolean(rawUri),
-    host,
-    dbName,
+    host: parsed.host || 'not-configured',
+    dbName: parsed.dbName || 'palitana_99_yatra',
+    user: parsed.user || '',
     isProduction
   };
 };
