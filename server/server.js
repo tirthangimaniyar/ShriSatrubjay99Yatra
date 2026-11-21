@@ -71,6 +71,18 @@ app.get('/api/health', (req, res) => {
   const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified, getMongoConfig } = require('./config/db');
   const mongoConfig = getMongoConfig ? getMongoConfig() : { hasUri: Boolean(process.env.MONGODB_URI), uri: process.env.MONGODB_URI || '', host: 'unknown' };
 
+  const lastErr = getLastMongoError() ? getLastMongoError().message : null;
+  let atlasDiagnosis = null;
+  if (!mongoConfig.hasUri) {
+    atlasDiagnosis = 'No MongoDB URI found in environment variables. Add MONGODB_URI in Render Dashboard (Web Service -> Environment).';
+  } else if (lastErr && lastErr.includes('SSL alert number 80')) {
+    atlasDiagnosis = 'MongoDB Atlas rejected the connection because the connecting IP is not whitelisted. In MongoDB Atlas (cloud.mongodb.com) -> Security -> Network Access, add IP "0.0.0.0/0" (Allow Access from Anywhere). Render containers have dynamic IPs, so 0.0.0.0/0 is required.';
+  } else if (lastErr && lastErr.includes('EBADNAME')) {
+    atlasDiagnosis = 'Cluster hostname in connection string could not be resolved by DNS.';
+  } else if (lastErr && lastErr.includes('bad auth')) {
+    atlasDiagnosis = 'Database username or password is incorrect. Verify user credentials in MongoDB Atlas Database Access.';
+  }
+
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -84,7 +96,8 @@ app.get('/api/health', (req, res) => {
       uriHost: mongoConfig.host,
       databaseName: mongoConfig.dbName,
       ttlIndexVerified: isTtlIndexVerified(),
-      lastError: getLastMongoError() ? getLastMongoError().message : null
+      lastError: lastErr,
+      diagnosis: atlasDiagnosis
     }
   });
 });
