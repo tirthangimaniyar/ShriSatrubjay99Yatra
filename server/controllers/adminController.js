@@ -1,11 +1,14 @@
 const { isConnectedToMongo, jsonStore } = require('../config/db');
 const Registration = require('../models/Registration');
 
-// GET /api/admin/dashboard (Comprehensive Dynamic Statistics)
+// GET /api/admin/dashboard (Comprehensive Dynamic Statistics - Excludes Expired Records)
 exports.getDashboardStats = async (req, res) => {
   try {
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const activeFilter = { expiresAt: { $gt: now } };
 
     if (isConnectedToMongo()) {
       const [
@@ -18,14 +21,14 @@ exports.getDashboardStats = async (req, res) => {
         recentRegistrations,
         allRegs
       ] = await Promise.all([
-        Registration.countDocuments(),
-        Registration.countDocuments({ status: 'Pending' }),
-        Registration.countDocuments({ status: 'Confirmed' }),
-        Registration.countDocuments({ status: { $in: ['Cancelled', 'Rejected'] } }),
-        Registration.countDocuments({ status: 'Waitlist' }),
-        Registration.countDocuments({ createdAt: { $gte: today } }),
-        Registration.find().sort({ createdAt: -1 }).limit(8),
-        Registration.find().select('totalParticipants city registrationCategory doliAssistanceRequired')
+        Registration.countDocuments(activeFilter),
+        Registration.countDocuments({ ...activeFilter, status: 'Pending' }),
+        Registration.countDocuments({ ...activeFilter, status: 'Confirmed' }),
+        Registration.countDocuments({ ...activeFilter, status: { $in: ['Cancelled', 'Rejected'] } }),
+        Registration.countDocuments({ ...activeFilter, status: 'Waitlist' }),
+        Registration.countDocuments({ ...activeFilter, createdAt: { $gte: today } }),
+        Registration.find(activeFilter).sort({ createdAt: -1 }).limit(8),
+        Registration.find(activeFilter).select('totalParticipants city registrationCategory doliAssistanceRequired')
       ]);
 
       const totalParticipants = allRegs.reduce((acc, curr) => acc + (curr.totalParticipants || 1), 0);
@@ -67,7 +70,7 @@ exports.getDashboardStats = async (req, res) => {
       });
     } else {
       const db = jsonStore.read();
-      const regs = db.registrations;
+      const regs = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
 
       const totalRegistrations = regs.length;
       const totalParticipants = regs.reduce((sum, r) => sum + (r.totalParticipants || 1), 0);
@@ -117,5 +120,47 @@ exports.getDashboardStats = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/admin/db-status (Detailed Production MongoDB Atlas & TTL Index Verification)
+exports.getDbStatus = async (req, res) => {
+  try {
+    const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified } = require('../config/db');
+    let indexes = [];
+    let activeRegistrations = 0;
+    let totalInDb = 0;
+
+    if (isConnectedToMongo()) {
+      indexes = await Registration.collection.indexes();
+      const now = new Date();
+      activeRegistrations = await Registration.countDocuments({ expiresAt: { $gt: now } });
+      totalInDb = await Registration.countDocuments();
+    }
+
+    const uri = process.env.MONGODB_URI || '';
+    let uriHost = 'default-local';
+    if (uri.includes('@')) {
+      uriHost = uri.split('@')[1].split('/')[0];
+    } else if (uri) {
+      uriHost = uri.split('://')[1] ? uri.split('://')[1].split('/')[0] : 'custom';
+    }
+
+    res.json({
+      success: true,
+      database: {
+        connected: isConnectedToMongo(),
+        hasMongoUri: Boolean(process.env.MONGODB_URI),
+        uriType: uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (uri ? 'mongodb' : 'none'),
+        uriHost,
+        ttlIndexVerified: isTtlIndexVerified(),
+        lastError: getLastMongoError() ? getLastMongoError().message : null,
+        activeRegistrations,
+        totalInDb,
+        indexes
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Mail, Shield, Sparkles, Heart } from 'lucide-react';
+import { MapPin, Phone, Mail, Sparkles, Heart } from 'lucide-react';
 
 export const Footer = () => {
   return (
@@ -122,16 +122,6 @@ export const Footer = () => {
               <a href="mailto:info@palitana99yatra.org" className="hover:text-white transition-colors">
                 info@palitana99yatra.org
               </a>
-            </div>
-
-            <div className="pt-4">
-              <Link
-                to="/admin/login"
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-yatra-maroonDark/90 border border-yatra-gold/40 text-amber-200 hover:text-white hover:bg-black/30 transition-all shadow-sm"
-              >
-                <Shield className="w-3.5 h-3.5 text-yatra-gold" />
-                <span>Admin Login Portal</span>
-              </Link>
             </div>
           </div>
         </div>

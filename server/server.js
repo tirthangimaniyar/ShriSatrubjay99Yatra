@@ -23,21 +23,25 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 const rawFrontendUrls = process.env.FRONTEND_URL || process.env.CLIENT_URL || '';
-const allowedOrigins = rawFrontendUrls
+const configuredOrigins = rawFrontendUrls
   ? rawFrontendUrls.split(',').map((origin) => origin.trim()).filter(Boolean)
-  : '*';
+  : [];
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, Postman, health checks)
-    if (!origin || allowedOrigins === '*') {
+    if (!origin) {
       return callback(null, true);
     }
-    if (Array.isArray(allowedOrigins)) {
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    // Allow any onrender.com origin, localhost, or configured origins
+    if (
+      origin.endsWith('.onrender.com') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      configuredOrigins.includes('*') ||
+      configuredOrigins.includes(origin)
+    ) {
+      return callback(null, true);
     }
     return callback(null, true);
   },
@@ -64,11 +68,30 @@ app.use('/api/settings', settingRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
+  const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified } = require('./config/db');
+  const uri = process.env.MONGODB_URI || '';
+  let uriHost = 'default-local';
+  if (uri) {
+    if (uri.includes('@')) {
+      uriHost = uri.split('@')[1].split('/')[0];
+    } else {
+      uriHost = uri.split('://')[1] ? uri.split('://')[1].split('/')[0] : 'custom';
+    }
+  }
+
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'Shri Shatrunjay Giriraj 99 Yatra API',
-    version: '1.0.0'
+    version: '1.0.0',
+    database: {
+      connected: isConnectedToMongo(),
+      hasMongoUri: Boolean(process.env.MONGODB_URI),
+      uriType: uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (uri ? 'mongodb' : 'none'),
+      uriHost,
+      ttlIndexVerified: isTtlIndexVerified(),
+      lastError: getLastMongoError() ? getLastMongoError().message : null
+    }
   });
 });
 

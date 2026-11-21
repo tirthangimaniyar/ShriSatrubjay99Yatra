@@ -1179,6 +1179,14 @@ export const AdminDashboard = () => {
                   <span className="text-gray-500 block font-bold">સંપૂર્ણ સરનામું:</span>
                   <span className="text-gray-800">{selectedReg.fullAddress}</span>
                 </div>
+                <div>
+                  <span className="text-gray-500 block font-bold">સબમિશન સમય:</span>
+                  <span className="font-semibold text-gray-900">{selectedReg.createdAt ? new Date(selectedReg.createdAt).toLocaleString('en-IN') : '-'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 block font-bold">સમયાવધિ (Expires At):</span>
+                  <span className="font-semibold text-amber-700">{selectedReg.expiresAt ? new Date(selectedReg.expiresAt).toLocaleString('en-IN') : '૨ કલાક (2 Hours)'}</span>
+                </div>
               </div>
 
               {/* Family Members */}

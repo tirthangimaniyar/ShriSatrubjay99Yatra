@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, Phone, Search, Sparkles, Heart } from 'lucide-react';
+import { Menu, X, Phone, Search, Sparkles, Heart } from 'lucide-react';
 
 export const Navbar = ({ onOpenStatusModal }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -144,14 +144,6 @@ export const Navbar = ({ onOpenStatusModal }) => {
                 <Heart className="w-3.5 h-3.5 fill-current text-amber-200" />
                 <span>યાત્રા રજીસ્ટ્રેશન</span>
               </button>
-
-              <Link
-                to="/admin/login"
-                className="p-2 text-yatra-purple hover:text-yatra-maroon hover:bg-yatra-sand/50 rounded-lg transition-colors border border-transparent hover:border-yatra-gold/30"
-                title="Admin Portal"
-              >
-                <Shield className="w-4 h-4" />
-              </Link>
             </div>
 
             {/* Mobile Hamburger Toggle */}
@@ -226,15 +218,6 @@ export const Navbar = ({ onOpenStatusModal }) => {
                 <Search className="w-4 h-4 text-yatra-gold" />
                 <span>રજીસ્ટ્રેશન સ્થિતિ ચકાસો (Check Status)</span>
               </button>
-
-              <Link
-                to="/admin/login"
-                onClick={() => setIsOpen(false)}
-                className="w-full py-2 px-4 text-center text-xs font-semibold text-gray-600 hover:text-yatra-maroon bg-white/70 rounded-lg border border-gray-200 flex items-center justify-center space-x-1.5"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin Login Dashboard</span>
-              </Link>
             </div>
           </div>
         )}

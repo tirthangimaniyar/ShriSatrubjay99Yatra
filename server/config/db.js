@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 let isConnectedToMongo = false;
+let lastMongoError = null;
+let ttlIndexVerified = false;
 
 const dataDir = path.join(__dirname, '..', 'data');
 const dbFilePath = path.join(dataDir, 'db.json');
@@ -64,26 +66,69 @@ class JsonStore {
 
 const jsonStore = new JsonStore();
 
+const verifyAndCreateIndexes = async () => {
+  try {
+    const Registration = require('../models/Registration');
+    // Ensure TTL index exists on expiresAt with expireAfterSeconds: 0
+    await Registration.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, background: true });
+    
+    const indexes = await Registration.collection.indexes();
+    const ttlIdx = indexes.find(idx => idx.key && idx.key.expiresAt !== undefined && idx.expireAfterSeconds === 0);
+    if (ttlIdx) {
+      ttlIndexVerified = true;
+      console.log('MongoDB TTL Index on expiresAt (expireAfterSeconds: 0) verified successfully in database!');
+    } else {
+      console.warn('TTL Index created but not yet visible in indexes list.');
+    }
+    return ttlIndexVerified;
+  } catch (err) {
+    console.error('Error verifying/creating TTL index:', err.message);
+    return false;
+  }
+};
+
 const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/palitana_99_yatra';
+  const maskedUri = uri.replace(/:([^:@]+)@/, ':****@');
 
   try {
-    console.log(`Connecting to MongoDB at: ${uri}...`);
-    // Connect with a 2-second server selection timeout to avoid blocking
+    console.log(`Connecting to MongoDB at: ${maskedUri}...`);
+    // Connect with a 15-second server selection timeout to handle Atlas DNS and TLS handshakes
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 15000,
     });
     isConnectedToMongo = true;
+    lastMongoError = null;
     console.log('MongoDB Connected Successfully to real database!');
+    await verifyAndCreateIndexes();
   } catch (err) {
-    console.warn('MongoDB connection failed or daemon not running.');
-    console.log('Seamlessly activating persistent high-performance Local Database Engine.');
+    lastMongoError = err;
+    console.warn(`MongoDB connection failed: ${err.message}`);
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+      console.error('CRITICAL: Running in production environment but could not connect to MongoDB Atlas!');
+    } else {
+      console.log('Activating local JSON store fallback for local development.');
+    }
     isConnectedToMongo = false;
   }
 };
 
+// Monitor MongoDB connection events
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected.');
+  isConnectedToMongo = false;
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connection active.');
+  isConnectedToMongo = true;
+});
+
 module.exports = {
   connectDB,
   isConnectedToMongo: () => isConnectedToMongo,
+  getLastMongoError: () => lastMongoError,
+  isTtlIndexVerified: () => ttlIndexVerified,
+  verifyAndCreateIndexes,
   jsonStore
 };
