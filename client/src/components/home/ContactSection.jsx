@@ -68,8 +68,8 @@ export const ContactSection = () => {
             <div className="space-y-1.5 text-xs text-gray-700">
               <p className="flex items-center space-x-2">
                 <span className="font-bold">સંઘ મંત્રીશ્રી:</span>
-                <a href="tel:+919712385694" className="text-yatra-maroon font-bold hover:underline">
-                  +91 97123 85694
+                <a href="tel:+916352366615" className="text-yatra-maroon font-bold hover:underline">
+                  +91 63523 66615
                 </a>
               </p>
               <p className="flex items-center space-x-2">
@@ -81,7 +81,7 @@ export const ContactSection = () => {
             </div>
             <div className="pt-2">
               <a
-                href="https://wa.me/919712385694?text=Jai%20Jinendra!%20I%20would%20like%20information%20about%20Shri%20Shatrunjay%2099%20Yatra"
+                href="https://wa.me/916352366615?text=Jai%20Jinendra!%20I%20would%20like%20information%20about%20Shri%20Shatrunjay%2099%20Yatra"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"

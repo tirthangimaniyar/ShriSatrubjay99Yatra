@@ -167,7 +167,7 @@ export const generateDevoteePassPDF = (registration) => {
   doc.text('2. Pure Jain religious conduct (Satvik ahara, Chovihar/Navkarshi) should be strictly observed during yatra.', 20, nextY + 17);
   doc.text('3. Comfortable white clothes, warm shawl for morning pradakshina, and personal medicines are recommended.', 20, nextY + 22);
   doc.text('4. Devotees needing Doli / Palkhi should contact the Sangh office 24 hours prior to scheduled ascent.', 20, nextY + 27);
-  doc.text('5. Helpline / WhatsApp: +91 97123 85694 | Email: info@palitana99yatra.org', 20, nextY + 32);
+  doc.text('5. Helpline / WhatsApp: +91 63523 66615 | Email: info@palitana99yatra.org', 20, nextY + 32);
 
   // Footer Signatures
   doc.setFont('helvetica', 'bold');

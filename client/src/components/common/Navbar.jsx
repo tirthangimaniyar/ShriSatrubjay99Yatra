@@ -45,9 +45,9 @@ export const Navbar = ({ onOpenStatusModal }) => {
           <span className="text-yatra-goldAccent font-serif">卐</span>
         </div>
         <div className="hidden md:flex items-center space-x-4 text-xs">
-          <a href="tel:+919712385694" className="hover:text-yatra-goldAccent transition-colors flex items-center space-x-1">
+          <a href="tel:+916352366615" className="hover:text-yatra-goldAccent transition-colors flex items-center space-x-1">
             <Phone className="w-3 h-3 text-yatra-goldAccent" />
-            <span>+91 97123 85694</span>
+            <span>+91 63523 66615</span>
           </a>
         </div>
       </div>

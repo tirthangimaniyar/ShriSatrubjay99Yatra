@@ -30,8 +30,8 @@ export const PromotionalCard = ({ onRegisterClick, onInvitationClick }) => {
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-amber-200/80 block tracking-wider">સંઘ હેલ્પલાઇન</span>
-                <a href="tel:+919712385694" className="text-sm font-bold text-white hover:text-amber-200 transition-colors">
-                  +91 97123 85694
+                <a href="tel:+916352366615" className="text-sm font-bold text-white hover:text-amber-200 transition-colors">
+                  +91 63523 66615
                 </a>
               </div>
             </div>
