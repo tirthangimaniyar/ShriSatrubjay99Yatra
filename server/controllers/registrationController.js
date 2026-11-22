@@ -1,11 +1,24 @@
+const mongoose = require('mongoose');
 const XLSX = require('xlsx');
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Registration = require('../models/Registration');
 const { generateRegistrationId } = require('../services/dataService');
 
 // POST /api/registrations (Devotee Registration)
 exports.createRegistration = async (req, res) => {
   try {
+    // 0. Ensure persistent database is active before accepting registrations
+    if (mongoose.connection.readyState !== 1 && !canUseFallback()) {
+      console.error(`[CRITICAL] Registration rejected: MongoDB Atlas is disconnected (readyState: ${mongoose.connection.readyState}).`);
+      return res.status(503).json({
+        success: false,
+        error: 'DatabaseUnavailable',
+        dbConnected: false,
+        dbState: mongoose.connection.readyState,
+        message: 'Database service is temporarily unavailable. To prevent loss of your registration data upon server restart, registration is paused until connection to MongoDB Atlas is active. Please try again in 1–2 minutes.'
+      });
+    }
+
     const {
       fullName,
       gender,
@@ -171,17 +184,8 @@ exports.createRegistration = async (req, res) => {
         message: 'શ્રી શત્રુંજય ૯૯ યાત્રા રજીસ્ટ્રેશન સફળતાપૂર્વક પૂર્ણ થયું છે. Jai Jinendra!',
         registration: newRegistration
       });
-    } else {
-      // In production, enforce MongoDB connection - never silently claim success with local mock!
-      if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-        console.error('Registration rejected: Production MongoDB database is not connected.');
-        return res.status(503).json({
-          success: false,
-          message: 'સેવા હાલ ઉપલબ્ધ નથી. ડેટાબેઝ સાથે સંપર્ક સ્થાપિત થઈ શક્યો નથી. કૃપા કરીને થોડી વાર પછી ફરી પ્રયાસ કરો.'
-        });
-      }
-
-      // Local JSON store fallback for local development only
+    } else if (canUseFallback()) {
+      // Local JSON store (ONLY in offline development when no MONGODB_URI is provided)
       const db = jsonStore.read();
       const existing = (db.registrations || []).find(r =>
         (r.mobileNumber === cleanMobile || r.email.toLowerCase() === cleanEmail) &&
@@ -245,6 +249,15 @@ exports.createRegistration = async (req, res) => {
         message: 'શ્રી શત્રુંજય ૯૯ યાત્રા રજીસ્ટ્રેશન સફળતાપૂર્વક પૂર્ણ થયું છે. Jai Jinendra!',
         registration: newReg
       });
+    } else {
+      console.error(`[CRITICAL] Registration rejected: MongoDB Atlas is disconnected (readyState: ${mongoose.connection.readyState}).`);
+      return res.status(503).json({
+        success: false,
+        error: 'DatabaseUnavailable',
+        dbConnected: false,
+        dbState: mongoose.connection.readyState,
+        message: 'Database service is currently unavailable. To ensure your registration is permanently saved to MongoDB Atlas, please try again in 1–2 minutes.'
+      });
     }
   } catch (error) {
     console.error('Registration Error:', error);
@@ -288,7 +301,7 @@ exports.lookupRegistration = async (req, res) => {
       }
 
       return res.json({ success: true, registration: reg });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const reg = (db.registrations || []).find(r =>
         (r.registrationId.toUpperCase() === query.toUpperCase() ||
@@ -304,6 +317,8 @@ exports.lookupRegistration = async (req, res) => {
       }
 
       return res.json({ success: true, registration: reg });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -379,7 +394,7 @@ exports.getAllRegistrations = async (req, res) => {
         pages: Math.ceil(total / limit) || 1,
         cities
       });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       let list = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
 
@@ -430,6 +445,8 @@ exports.getAllRegistrations = async (req, res) => {
         pages: Math.ceil(total / limit) || 1,
         cities
       });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -452,7 +469,7 @@ exports.getRegistrationById = async (req, res) => {
 
       if (!reg) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
       return res.json({ success: true, registration: reg });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const reg = (db.registrations || []).find(r =>
         (r._id === id || r.registrationId === id) &&
@@ -460,6 +477,8 @@ exports.getRegistrationById = async (req, res) => {
       );
       if (!reg) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
       return res.json({ success: true, registration: reg });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -488,7 +507,7 @@ exports.updateRegistration = async (req, res) => {
 
       if (!updated) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
       return res.json({ success: true, message: 'Registration updated successfully', registration: updated });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const idx = (db.registrations || []).findIndex(r =>
         (r._id === id || r.registrationId === id) &&
@@ -500,6 +519,8 @@ exports.updateRegistration = async (req, res) => {
       jsonStore.write(db);
 
       return res.json({ success: true, message: 'Registration updated successfully', registration: db.registrations[idx] });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -532,7 +553,7 @@ exports.updateRegistrationStatus = async (req, res) => {
 
       if (!updated) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
       return res.json({ success: true, message: `Status updated to ${status}`, registration: updated });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const idx = (db.registrations || []).findIndex(r =>
         (r._id === id || r.registrationId === id) &&
@@ -546,6 +567,8 @@ exports.updateRegistrationStatus = async (req, res) => {
 
       jsonStore.write(db);
       return res.json({ success: true, message: `Status updated to ${status}`, registration: db.registrations[idx] });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -564,7 +587,7 @@ exports.deleteRegistration = async (req, res) => {
 
       if (!deleted) return res.status(404).json({ success: false, message: 'Registration not found' });
       return res.json({ success: true, message: 'Registration deleted successfully.' });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const idx = db.registrations.findIndex(r => r._id === id || r.registrationId === id);
       if (idx === -1) return res.status(404).json({ success: false, message: 'Registration not found' });
@@ -572,6 +595,8 @@ exports.deleteRegistration = async (req, res) => {
       db.registrations.splice(idx, 1);
       jsonStore.write(db);
       return res.json({ success: true, message: 'Registration deleted successfully.' });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -585,10 +610,12 @@ exports.exportToExcel = async (req, res) => {
     const now = new Date();
 
     if (isConnectedToMongo()) {
-      records = await Registration.find({ expiresAt: { $gt: now } }).sort({ createdAt: -1 });
-    } else {
+      records = await Registration.find().sort({ createdAt: -1 });
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
-      records = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
+      records = db.registrations || [];
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
 
     // Format rows for professional Excel export

@@ -1,4 +1,4 @@
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Registration = require('../models/Registration');
 
 // GET /api/admin/dashboard (Comprehensive Dynamic Statistics - Excludes Expired Records)
@@ -68,7 +68,7 @@ exports.getDashboardStats = async (req, res) => {
           recentRegistrations
         }
       });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const regs = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
 
@@ -117,6 +117,8 @@ exports.getDashboardStats = async (req, res) => {
           recentRegistrations
         }
       });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

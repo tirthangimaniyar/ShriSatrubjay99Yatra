@@ -1,4 +1,4 @@
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Setting = require('../models/Setting');
 
 // GET /api/settings
@@ -10,9 +10,11 @@ exports.getSettings = async (req, res) => {
         setting = await Setting.create({});
       }
       return res.json({ success: true, settings: setting });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       return res.json({ success: true, settings: db.settings });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -33,11 +35,13 @@ exports.updateSettings = async (req, res) => {
         setting = await Setting.findByIdAndUpdate(setting._id, updateData, { new: true });
       }
       return res.json({ success: true, message: 'Website settings updated successfully', settings: setting });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       db.settings = { ...db.settings, ...updateData };
       jsonStore.write(db);
       return res.json({ success: true, message: 'Website settings updated successfully', settings: db.settings });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

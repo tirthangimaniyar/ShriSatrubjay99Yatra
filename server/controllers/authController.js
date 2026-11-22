@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Admin = require('../models/Admin');
 
 const generateToken = (admin) => {
@@ -66,7 +66,7 @@ exports.login = async (req, res) => {
           lastLogin: admin.lastLogin
         }
       });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const admin = db.admins.find(a => a.email.toLowerCase() === cleanEmail);
       if (!admin) {
@@ -101,6 +101,11 @@ exports.login = async (req, res) => {
           phone: admin.phone || '',
           lastLogin: admin.lastLogin
         }
+      });
+    } else {
+      return res.status(503).json({
+        success: false,
+        message: 'Database service is temporarily unavailable. Persistent MongoDB Atlas connection is required.'
       });
     }
   } catch (error) {
@@ -156,7 +161,7 @@ exports.changePassword = async (req, res) => {
       }
       admin.password = newHashed;
       await admin.save();
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const adminIdx = db.admins.findIndex(a => a._id === (req.user._id || req.user.id));
       if (adminIdx === -1) {
@@ -171,6 +176,8 @@ exports.changePassword = async (req, res) => {
       }
       db.admins[adminIdx].password = newHashed;
       jsonStore.write(db);
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
 
     res.json({
@@ -212,7 +219,7 @@ exports.registerAdmin = async (req, res) => {
         message: 'New admin created successfully.',
         admin: { id: newAdmin._id, name: newAdmin.name, email: newAdmin.email, role: newAdmin.role }
       });
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       if (db.admins.some(a => a.email.toLowerCase() === cleanEmail)) {
         return res.status(400).json({ success: false, message: 'An admin with this email already exists.' });
@@ -236,6 +243,8 @@ exports.registerAdmin = async (req, res) => {
         message: 'New admin created successfully.',
         admin: { id: newAdmin._id, name: newAdmin.name, email: newAdmin.email, role: newAdmin.role }
       });
+    } else {
+      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

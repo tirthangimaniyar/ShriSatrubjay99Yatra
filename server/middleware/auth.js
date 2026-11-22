@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Admin = require('../models/Admin');
 
 const authenticateAdmin = async (req, res, next) => {
@@ -35,7 +35,7 @@ const authenticateAdmin = async (req, res, next) => {
         });
       }
       req.user = admin;
-    } else {
+    } else if (canUseFallback()) {
       const db = jsonStore.read();
       const admin = db.admins.find(a => a._id === decoded.id || a.email === decoded.email);
       if (!admin) {
@@ -46,6 +46,11 @@ const authenticateAdmin = async (req, res, next) => {
       }
       const { password, ...adminWithoutPassword } = admin;
       req.user = adminWithoutPassword;
+    } else {
+      return res.status(503).json({
+        success: false,
+        message: 'Database service is temporarily unavailable.'
+      });
     }
 
     next();

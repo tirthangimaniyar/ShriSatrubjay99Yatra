@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { isConnectedToMongo, jsonStore } = require('../config/db');
+const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Admin = require('../models/Admin');
 const Registration = require('../models/Registration');
 const Gallery = require('../models/Gallery');
@@ -158,8 +158,8 @@ async function seedDefaultData() {
     } catch (err) {
       console.error('Error seeding MongoDB:', err.message);
     }
-  } else {
-    // Local JSON store
+  } else if (canUseFallback()) {
+    // Local JSON store strictly for offline local development
     const db = jsonStore.read();
     let modified = false;
 
@@ -203,6 +203,8 @@ async function seedDefaultData() {
     if (modified) {
       jsonStore.write(db);
     }
+  } else {
+    console.warn('[SEED NOTICE] Persistent MongoDB Atlas enforced. Local JSON seeding disabled to protect production data.');
   }
 }
 

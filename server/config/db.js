@@ -2,21 +2,18 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 
-let isConnectedToMongo = false;
 let lastMongoError = null;
-let ttlIndexVerified = false;
-let reconnectTimer = null;
 let isConnecting = false;
 
 const dataDir = path.join(__dirname, '..', 'data');
 const dbFilePath = path.join(dataDir, 'db.json');
 
-// Ensure data directory exists
+// Ensure data directory exists for local dev
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Initial fallback database structure
+// Initial fallback database structure (strictly for offline local development)
 const initialData = {
   admins: [],
   registrations: [],
@@ -39,7 +36,6 @@ const initialData = {
   }
 };
 
-// JSON-based database helper for fallback
 class JsonStore {
   constructor() {
     if (!fs.existsSync(dbFilePath)) {
@@ -90,7 +86,6 @@ const parseAndFixMongoUri = (rawUri) => {
   }
 
   let cleaned = rawUri.trim();
-  // Strip enclosing single/double quotes
   if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
     cleaned = cleaned.slice(1, -1).trim();
   }
@@ -103,10 +98,8 @@ const parseAndFixMongoUri = (rawUri) => {
   const scheme = schemeMatch[1].toLowerCase();
   const rest = schemeMatch[2];
 
-  // Find the LAST '@' to separate credentials from cluster host
   const lastAtIndex = rest.lastIndexOf('@');
   if (lastAtIndex === -1) {
-    // No credentials provided
     let hostPart = rest;
     let queryPart = '';
     const qIdx = hostPart.indexOf('?');
@@ -126,16 +119,13 @@ const parseAndFixMongoUri = (rawUri) => {
   const credPart = rest.substring(0, lastAtIndex);
   const hostAndRest = rest.substring(lastAtIndex + 1);
 
-  // Split username and password at the FIRST ':'
   const firstColon = credPart.indexOf(':');
   let username = firstColon !== -1 ? credPart.substring(0, firstColon) : credPart;
   let password = firstColon !== -1 ? credPart.substring(firstColon + 1) : '';
 
-  // Remove accidental documentation placeholder angle brackets
   username = username.replace(/^<+|>+$/g, '').trim();
   password = password.replace(/^<+|>+$/g, '').trim();
 
-  // Split host, dbName, and query params
   let hostPart = hostAndRest;
   let queryPart = '';
   const qIdx = hostPart.indexOf('?');
@@ -151,7 +141,6 @@ const parseAndFixMongoUri = (rawUri) => {
   host = host.replace(/^<+|>+$/g, '').trim();
   dbName = (dbName || 'palitana_99_yatra').replace(/^<+|>+$/g, '').trim();
 
-  // URL-encode username and password (e.g. converting '@' to '%40')
   const encodedUser = safeEncode(username);
   const encodedPass = safeEncode(password);
 
@@ -210,25 +199,24 @@ const getMongoConfig = () => {
   };
 };
 
-const verifyAndCreateIndexes = async () => {
-  try {
-    const Registration = require('../models/Registration');
-    // Ensure TTL index exists on expiresAt with expireAfterSeconds: 0
-    await Registration.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, background: true });
-    
-    const indexes = await Registration.collection.indexes();
-    const ttlIdx = indexes.find(idx => idx.key && idx.key.expiresAt !== undefined && idx.expireAfterSeconds === 0);
-    if (ttlIdx) {
-      ttlIndexVerified = true;
-      console.log('MongoDB TTL Index on expiresAt (expireAfterSeconds: 0) verified successfully in Atlas database!');
-    } else {
-      console.warn('TTL Index created but not yet visible in indexes list.');
-    }
-    return ttlIndexVerified;
-  } catch (err) {
-    console.error('Error verifying/creating TTL index:', err.message);
-    return false;
-  }
+// Check if persistent database is strictly enforced
+const isPersistentDbEnforced = () => {
+  return process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER) || Boolean(process.env.MONGODB_URI);
+};
+
+// Check if currently connected to MongoDB
+const isConnectedToMongo = () => {
+  return mongoose.connection.readyState === 1;
+};
+
+// Fallback to local JSON is ONLY allowed in offline development when no MONGODB_URI is configured
+const canUseFallback = () => {
+  return !isPersistentDbEnforced() && !isConnectedToMongo();
+};
+
+const maskUri = (uri) => {
+  if (!uri) return '';
+  return uri.replace(/:([^:@]+)@/, ':****@');
 };
 
 const connectDB = async () => {
@@ -238,86 +226,78 @@ const connectDB = async () => {
   const config = getMongoConfig();
 
   if (!config.uri) {
-    const errMsg = 'No MongoDB URI configured in environment variables (checked MONGODB_URI, MONGO_URI, DATABASE_URL, MONGODB_URL, ATLAS_URI). Please add MONGODB_URI in your Render Dashboard (Web Service -> Environment).';
+    const errMsg = 'No MongoDB URI configured in environment variables. Add MONGODB_URI in Render Dashboard (Web Service -> Environment).';
     lastMongoError = new Error(errMsg);
-    isConnectedToMongo = false;
     isConnecting = false;
-    console.error(`CRITICAL: [MongoDB] ${errMsg}`);
-    scheduleReconnect();
+    if (isPersistentDbEnforced()) {
+      console.error('================================================================');
+      console.error(`CRITICAL CONFIGURATION ERROR: ${errMsg}`);
+      console.error('In production, persistent MongoDB Atlas is mandatory. Local JSON fallback is DISABLED.');
+      console.error('================================================================');
+    } else {
+      console.warn('[DEV] No MONGODB_URI defined. Using local JSON store for offline development.');
+    }
     return;
   }
 
   try {
-    console.log(`[MongoDB] Connecting to MongoDB (${config.foundKey || 'default'}) at: ${config.maskedUri}...`);
+    console.log(`Connecting to MongoDB Atlas at: ${maskUri(config.uri)}...`);
     
-    // Connect with 15-second timeout and robust pool options
+    // 10-second server selection timeout allows reliable initial handshake across cloud containers
     await mongoose.connect(config.uri, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
 
-    isConnectedToMongo = true;
     lastMongoError = null;
-    console.log(`[MongoDB] Connected Successfully to database "${config.dbName}" on host "${config.host}"!`);
-    await verifyAndCreateIndexes();
-
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
+    isConnecting = false;
+    console.log('MongoDB Atlas Connected Successfully! readyState:', mongoose.connection.readyState);
   } catch (err) {
     lastMongoError = err;
-    isConnectedToMongo = false;
-    console.error(`[MongoDB] Connection failed to ${config.maskedUri}: ${err.message}`);
-    
-    if (config.isProduction) {
-      console.error('[MongoDB] CRITICAL: Running in production environment but could not connect to MongoDB Atlas!');
-    } else {
-      console.log('[MongoDB] Activating local JSON store fallback for local development.');
-    }
-
-    scheduleReconnect();
-  } finally {
     isConnecting = false;
+
+    console.error('================================================================');
+    console.error('CRITICAL DATABASE ERROR: Failed to connect to MongoDB Atlas!');
+    console.error(`Target URI: ${maskUri(config.uri)}`);
+    console.error(`Error Name: ${err.name}`);
+    console.error(`Error Message: ${err.message}`);
+    if (err.code) console.error(`Error Code: ${err.code}`);
+    console.error('----------------------------------------------------------------');
+    console.error('TROUBLESHOOTING CHECKLIST FOR RENDER & MONGODB ATLAS:');
+    console.error('1. Network Access: Ensure MongoDB Atlas IP Access List contains 0.0.0.0/0 (required for Render dynamic IPs).');
+    console.error('2. Database User: Verify username and password in MONGODB_URI. If the password has special characters, ensure they are URL-encoded.');
+    console.error('3. Render Env: Verify MONGODB_URI is correctly saved in Render Dashboard -> Environment.');
+    console.error('================================================================');
+
+    if (isPersistentDbEnforced()) {
+      console.error('PROD ALERT: Local JSON fallback is DISABLED to prevent silent data loss upon container spindown.');
+    } else {
+      console.warn('[DEV] Falling back to local JSON store for local debugging.');
+    }
   }
 };
 
-const scheduleReconnect = () => {
-  if (reconnectTimer) return;
-  // Retry every 15 seconds in case Atlas or network was temporarily unavailable or env var was updated
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    if (!isConnectedToMongo) {
-      console.log('[MongoDB] Attempting reconnection...');
-      connectDB();
-    }
-  }, 15000);
-};
-
-// Monitor MongoDB connection events
-mongoose.connection.on('disconnected', () => {
-  console.warn('[MongoDB] Connection disconnected.');
-  isConnectedToMongo = false;
-  scheduleReconnect();
-});
-
+// Global Mongoose connection event listeners
 mongoose.connection.on('connected', () => {
-  console.log('[MongoDB] Connection active.');
-  isConnectedToMongo = true;
+  lastMongoError = null;
+  console.log('[Mongoose Event] Connected to MongoDB Atlas.');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('[MongoDB] Runtime error:', err.message);
   lastMongoError = err;
+  console.error('[Mongoose Event] Runtime error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('[Mongoose Event] Disconnected from MongoDB Atlas.');
 });
 
 module.exports = {
   connectDB,
-  isConnectedToMongo: () => isConnectedToMongo,
+  isConnectedToMongo,
+  canUseFallback,
+  isPersistentDbEnforced,
   getLastMongoError: () => lastMongoError,
-  isTtlIndexVerified: () => ttlIndexVerified,
   getMongoConfig,
-  verifyAndCreateIndexes,
   jsonStore
 };
