@@ -1,25 +1,26 @@
 import React from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare, Compass, Shield } from 'lucide-react';
+import { OrnamentalDivider } from '../common/OrnamentalDivider';
 
 export const ContactSection = () => {
   return (
-    <section id="contact" className="py-20 bg-yatra-cream relative">
+    <section id="contact" className="py-20 bg-[#FDF8F0] relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
-          <div className="inline-flex items-center space-x-2 px-4 py-1 rounded-full bg-yatra-maroon/10 border border-yatra-gold/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati">
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#C59B27]/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati shadow-sm">
             <span>સંપર્ક અને સહાયતા કેન્દ્ર</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-yatra-maroon font-gujarati tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-yatra-maroon font-gujaratiSerif tracking-tight matra-safe">
             Contact Us & Helpline
           </h2>
-          <p className="text-sm sm:text-base text-gray-700 font-gujarati">
+          <p className="text-sm sm:text-base text-gray-700 font-gujarati matra-safe">
             શ્રી શત્રુંજય ૯૯ યાત્રા સંબંધી કોઈપણ પૂછપરછ અથવા માર્ગદર્શન માટે સંઘ કાર્યાલયનો સંપર્ક કરો.
           </p>
 
-          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-yatra-gold to-transparent mx-auto mt-2"></div>
+          <OrnamentalDivider className="my-2" />
         </div>
 
         {/* 3 Main Contact Cards */}

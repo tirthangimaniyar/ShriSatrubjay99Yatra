@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, Download, Maximize2, X, ZoomIn, ZoomOut, Sparkles } from 'lucide-react';
+import { OrnamentalDivider } from '../common/OrnamentalDivider';
 
 export const OfficialInvitation = () => {
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -22,29 +23,29 @@ export const OfficialInvitation = () => {
   };
 
   return (
-    <section id="invitation" className="py-20 bg-gradient-to-b from-yatra-cream via-yatra-ivory to-yatra-sand/50 relative overflow-hidden">
+    <section id="invitation" className="py-20 bg-[#F7EFE2] relative overflow-hidden">
       {/* Decorative Background Elements */}
-      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-yatra-gold to-transparent"></div>
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#C59B27] to-transparent"></div>
       <div className="absolute -left-20 top-40 w-72 h-72 bg-amber-200/20 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute -right-20 bottom-40 w-72 h-72 bg-yatra-gold/15 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Heading */}
-        <div className="text-center space-y-3 mb-12">
-          <div className="inline-flex items-center space-x-2 px-4 py-1 rounded-full bg-yatra-maroon/10 border border-yatra-gold/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati">
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+        <div className="text-center space-y-3 mb-10">
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#C59B27]/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
             <span>સત્તાવાર સંઘ આમંત્રણ દર્શન</span>
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-yatra-maroon font-gujarati tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-yatra-maroon font-gujaratiSerif tracking-tight matra-safe">
             Official Yatra Invitation
           </h2>
-          <p className="text-sm sm:text-base text-yatra-purple font-medium font-gujarati max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-yatra-royalMaroon font-medium font-gujarati max-w-xl mx-auto matra-safe">
             શ્રી બેતાલીસ વિશા શ્રીમાળી જૈન સમાજ આયોજિત શાશ્વતાગિરિના પથ પર ૯૯ યાત્રા સહ છ'રી પાલિત યાત્રા સંઘની મૂળ પત્રિકા
           </p>
 
-          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-yatra-gold to-transparent mx-auto mt-2"></div>
+          <OrnamentalDivider className="my-2" />
         </div>
 
         {/* Poster Showcase Container with Golden Decorative Frame */}

@@ -126,19 +126,19 @@ export const HeroSection = ({ onRegisterClick, onInvitationClick }) => {
 
             {/* Main Headings */}
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-extrabold text-yatra-maroon font-gujarati leading-tight tracking-tight drop-shadow-sm">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-yatra-royalMaroon font-gujaratiSerif leading-tight tracking-tight drop-shadow-sm matra-safe">
                 શ્રી શત્રુંજય ગિરિરાજ ૯૯ યાત્રા
               </h1>
               <h2 className="text-lg sm:text-xl md:text-2xl font-serifHeading font-bold text-yatra-purple tracking-wide">
                 Shri Shatrunjay Giriraj 99 Yatra
               </h2>
-              <p className="text-sm sm:text-base font-semibold text-yatra-goldDark font-gujarati">
+              <p className="text-sm sm:text-base font-semibold text-[#C59B27] font-gujarati matra-safe">
                 શાશ્વતાગિરિના પથ પર ૯૯ યાત્રા સહ છ'રી પાલિત યાત્રા સંઘ
               </p>
             </div>
 
             {/* Gujarati Description */}
-            <p className="text-base sm:text-lg text-yatra-charcoal/90 leading-relaxed font-gujarati max-w-2xl mx-auto lg:mx-0">
+            <p className="text-base sm:text-lg text-yatra-charcoal/90 leading-relaxed font-gujarati max-w-2xl mx-auto lg:mx-0 matra-safe">
               "પરમાત્માની પાવન ભક્તિ અને શ્રી શત્રુંજય ગિરિરાજની પવિત્ર યાત્રામાં જોડાવા માટે આપનું હાર્દિક સ્વાગત છે."
             </p>
 

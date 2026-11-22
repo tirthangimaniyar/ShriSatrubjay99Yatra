@@ -10,6 +10,7 @@ import { RegistrationSection } from '../components/home/RegistrationSection';
 import { ContactSection } from '../components/home/ContactSection';
 import { Footer } from '../components/common/Footer';
 import { CheckStatusModal } from '../components/home/CheckStatusModal';
+import { FloatingQuickBar } from '../components/common/FloatingQuickBar';
 
 export const HomePage = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -22,7 +23,7 @@ export const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-yatra-cream">
+    <div className="min-h-screen flex flex-col bg-yatra-cream pb-16 md:pb-0">
       {/* Navigation */}
       <Navbar onOpenStatusModal={() => setIsStatusModalOpen(true)} />
 
@@ -63,6 +64,12 @@ export const HomePage = () => {
       <CheckStatusModal
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
+      />
+
+      {/* Mobile-Only Bottom Floating Quick Action Bar */}
+      <FloatingQuickBar
+        onRegisterClick={() => scrollTo('registration')}
+        onOpenStatusModal={() => setIsStatusModalOpen(true)}
       />
     </div>
   );

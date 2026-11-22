@@ -5,8 +5,55 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    font-family: 'Poppins', 'Noto Sans Gujarati', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Gujarati', sans-serif;
+    line-height: 1.65;
   }
+  
+  /* Prevent Gujarati matras from being clipped */
+  h1, h2, h3, h4, h5, h6, p, span, button, input, select, textarea {
+    line-height: inherit;
+  }
+}
+
+/* Matra safety for Gujarati typography */
+.matra-safe {
+  line-height: 1.75 !important;
+  padding-top: 0.12em;
+  padding-bottom: 0.12em;
+}
+
+/* Royal Patrika Ornate Gold Border */
+.patrika-card {
+  position: relative;
+  border: 2px solid #C59B27;
+  background: #FFFDF8;
+}
+
+.patrika-card::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(197, 155, 39, 0.4);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Lotus / Temple Arch Ornamental Divider */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #C59B27;
+  margin: 1.5rem auto;
+}
+
+.ornamental-divider::before,
+.ornamental-divider::after {
+  content: '';
+  height: 1px;
+  width: 70px;
+  background: linear-gradient(90deg, transparent, #C59B27, transparent);
 }
 
 /* Custom religious ornamentation and gold accents */

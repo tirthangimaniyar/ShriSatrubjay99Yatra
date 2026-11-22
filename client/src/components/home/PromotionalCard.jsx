@@ -15,7 +15,7 @@ export const PromotionalCard = ({ onRegisterClick, onInvitationClick }) => {
                 <Sparkles className="w-3 h-3 text-yatra-goldAccent" />
                 <span>શાશ્વતાગિરિના પથ પર ૯૯ યાત્રા સહ છ'રી પાલિત સંઘ</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold font-gujarati tracking-wide text-amber-100">
+              <h3 className="text-xl sm:text-2xl font-bold font-gujaratiSerif tracking-wide text-amber-100 matra-safe">
                 શ્રી બેતાલીસ વિશા શ્રીમાળી જૈન સમાજ
               </h3>
               <p className="text-xs text-amber-200/80 font-serifHeading">

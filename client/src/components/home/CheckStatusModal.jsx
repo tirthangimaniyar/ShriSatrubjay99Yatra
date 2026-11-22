@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, X, CheckCircle, Clock, AlertCircle, FileDown, Printer, User, Phone, MapPin } from 'lucide-react';
-import { generateDevoteePassPDF } from '../../utils/pdfGenerator';
 import { getApiUrl } from '../../config';
+import { DigitalYatrikPass } from '../common/DigitalYatrikPass';
 
 export const CheckStatusModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
@@ -40,8 +40,10 @@ export const CheckStatusModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-3xl border-2 border-yatra-gold max-w-lg w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+      <div className={`bg-white rounded-3xl border-4 border-[#C59B27] w-full p-5 sm:p-7 shadow-2xl relative overflow-hidden my-6 ${
+        result ? 'max-w-2xl' : 'max-w-lg'
+      }`}>
         
         {/* Close Button */}
         <button
@@ -101,40 +103,10 @@ export const CheckStatusModal = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* Result Details */}
+        {/* Result Details - Ornate Digital Yatrik Pass */}
         {result && (
-          <div className="bg-yatra-cream/60 border border-yatra-gold/30 rounded-2xl p-4 space-y-3 font-gujarati animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-yatra-gold/20 pb-2">
-              <div>
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block font-serif">REGISTRATION ID</span>
-                <span className="font-mono font-bold text-yatra-maroon text-base">{result.registrationId}</span>
-              </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                result.status === 'Confirmed'
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                  : 'bg-amber-100 text-amber-800 border border-amber-300'
-              }`}>
-                {result.status}
-              </span>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-gray-700">
-              <p><span className="font-bold text-gray-900">યાત્રિક:</span> {result.fullName} ({result.gender}, {result.age} વર્ષ)</p>
-              <p><span className="font-bold text-gray-900">મોબાઈલ:</span> {result.mobileNumber}</p>
-              <p><span className="font-bold text-gray-900">શહેર:</span> {result.city}, {result.state}</p>
-              <p><span className="font-bold text-gray-900">કેટેગરી:</span> {result.registrationCategory}</p>
-              <p><span className="font-bold text-gray-900">કુલ સભ્યો:</span> {result.totalParticipants} વ્યક્તિ</p>
-            </div>
-
-            <div className="pt-2 border-t border-yatra-gold/20 flex items-center space-x-2">
-              <button
-                onClick={() => generateDevoteePassPDF(result)}
-                className="flex-1 py-2 px-3 bg-yatra-maroon text-white font-bold text-xs rounded-xl shadow-sm hover:bg-yatra-maroonLight transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <FileDown className="w-3.5 h-3.5 text-amber-200" />
-                <span>પાસ ડાઉનલોડ (PDF)</span>
-              </button>
-            </div>
+          <div className="mt-4 pt-2 border-t-2 border-[#C59B27]/30">
+            <DigitalYatrikPass registration={result} isModal={true} />
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Maximize2, X, ChevronLeft, ChevronRight, Download, Filter } from 'lucide-react';
+import { Sparkles, Maximize2, X, ChevronLeft, ChevronRight, Download, Filter, Tag } from 'lucide-react';
 import { getApiUrl } from '../../config';
+import { OrnamentalDivider } from '../common/OrnamentalDivider';
 
 // Built-in high quality gallery images as guaranteed fallback
 const defaultGalleryImages = [
@@ -164,26 +165,38 @@ export const PalitanaGallery = () => {
     }
   };
 
+  // Keyboard navigation for Lightbox (Arrow Keys & Escape)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (selectedImageIndex === null) return;
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'Escape') closeLightbox();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImageIndex, filteredImages.length]);
+
   return (
-    <section id="gallery" className="py-20 bg-yatra-ivory relative">
+    <section id="gallery" className="py-20 bg-[#FDF8F0] relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-10 space-y-3">
-          <div className="inline-flex items-center space-x-2 px-4 py-1 rounded-full bg-yatra-maroon/10 border border-yatra-gold/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati">
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#C59B27]/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
             <span>પાવન તીર્થ પાલિતાણા દર્શન</span>
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-yatra-maroon font-gujarati tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-yatra-maroon font-gujaratiSerif tracking-tight matra-safe">
             Palitana Giriraj Image Gallery
           </h2>
-          <p className="text-sm sm:text-base text-gray-700 font-gujarati">
+          <p className="text-sm sm:text-base text-gray-700 font-gujarati matra-safe">
             શ્રી શત્રુંજય તીર્થ, જિનાલયો, આરસ શિલ્પકળા અને તીર્થંકર પરમાત્માના અલૌકિક દર્શન
           </p>
 
-          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-yatra-gold to-transparent mx-auto mt-2"></div>
+          <OrnamentalDivider className="my-2" />
         </div>
 
         {/* Category Filters */}
@@ -194,8 +207,8 @@ export const PalitanaGallery = () => {
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all font-gujarati ${
                 activeCategory === cat
-                  ? 'bg-yatra-maroon text-white shadow-md border-2 border-yatra-gold'
-                  : 'bg-white text-yatra-charcoal border border-yatra-gold/40 hover:bg-amber-50'
+                  ? 'bg-yatra-royalMaroon text-white shadow-md border-2 border-[#C59B27]'
+                  : 'bg-white text-yatra-charcoal border border-[#C59B27]/40 hover:bg-amber-50'
               }`}
             >
               {cat === 'All' ? 'તમામ દર્શન (All)' : cat}
@@ -214,7 +227,7 @@ export const PalitanaGallery = () => {
               <div
                 key={img._id || index}
                 onClick={() => openLightbox(index)}
-                className="group relative bg-white rounded-2xl overflow-hidden border-2 border-yatra-gold/30 hover:border-yatra-gold shadow-sm hover:shadow-gold transition-all duration-300 cursor-pointer flex flex-col"
+                className="group relative patrika-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
               >
                 {/* Image Container - Enforcing 16:9 Landscape Aspect Ratio */}
                 <div className="relative aspect-video overflow-hidden bg-stone-100">
@@ -230,31 +243,31 @@ export const PalitanaGallery = () => {
                   />
                   {/* Subtle hover overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <span className="p-2.5 rounded-full bg-white/90 text-yatra-maroon shadow-md transform scale-90 group-hover:scale-100 transition-transform">
-                      <Maximize2 className="w-5 h-5 text-yatra-goldDark" />
+                    <span className="p-2.5 rounded-full bg-white/95 text-yatra-maroon shadow-md transform scale-90 group-hover:scale-100 transition-transform">
+                      <Maximize2 className="w-5 h-5 text-[#C59B27]" />
                     </span>
                   </div>
 
                   {/* Category Pill on top left */}
                   <div className="absolute top-2 left-2">
-                    <span className="text-[10px] font-bold bg-yatra-maroon/85 text-amber-100 px-2 py-0.5 rounded-md backdrop-blur-sm border border-yatra-gold/30">
+                    <span className="text-[10px] font-bold bg-yatra-royalMaroon/90 text-amber-100 px-2.5 py-0.5 rounded-md backdrop-blur-sm border border-[#C59B27]/40 shadow-sm">
                       {img.category}
                     </span>
                   </div>
                 </div>
 
                 {/* Caption Block */}
-                <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <div className="p-4 flex-1 flex flex-col justify-between bg-white">
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-yatra-maroon font-gujarati line-clamp-1 mb-1">
+                    <h3 className="font-bold text-xs sm:text-sm text-yatra-maroon font-gujaratiSerif line-clamp-1 mb-1 matra-safe">
                       {img.gujaratiTitle || img.title}
                     </h3>
-                    <p className="text-[11px] text-gray-600 font-gujarati line-clamp-2">
+                    <p className="text-[11px] text-gray-600 font-gujarati line-clamp-2 leading-relaxed matra-safe">
                       {img.description || img.title}
                     </p>
                   </div>
-                  <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-yatra-goldDark font-bold">
-                    <span>દર્શન કરો</span>
+                  <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-[#C59B27] font-bold font-gujarati">
+                    <span>દર્શન કરો (View Full)</span>
                     <span>✦</span>
                   </div>
                 </div>
@@ -265,14 +278,25 @@ export const PalitanaGallery = () => {
 
       </div>
 
-      {/* LIGHTBOX MODAL */}
+      {/* FULL-SCREEN LIGHTBOX MODAL */}
       {selectedImageIndex !== null && filteredImages[selectedImageIndex] && (
-        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-6 animate-fadeIn">
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-fadeIn"
+          onClick={(e) => {
+            // Close if clicked directly on the modal backdrop
+            if (e.target === e.currentTarget) closeLightbox();
+          }}
+        >
           
           {/* Top Bar with Title and Controls */}
-          <div className="w-full max-w-4xl flex items-center justify-between py-2 px-4 text-white mb-2">
-            <div className="font-gujarati text-xs sm:text-sm text-amber-200 truncate pr-4">
-              {filteredImages[selectedImageIndex].gujaratiTitle || filteredImages[selectedImageIndex].title}
+          <div className="w-full max-w-5xl flex items-center justify-between py-2.5 px-4 text-white mb-2 bg-stone-900/80 rounded-xl border border-stone-700/60">
+            <div className="flex items-center space-x-3 overflow-hidden pr-4">
+              <span className="text-xs px-2.5 py-0.5 rounded-md bg-[#C59B27] text-stone-950 font-bold shrink-0">
+                {filteredImages[selectedImageIndex].category}
+              </span>
+              <h3 className="font-gujaratiSerif text-sm sm:text-base text-amber-100 truncate">
+                {filteredImages[selectedImageIndex].gujaratiTitle || filteredImages[selectedImageIndex].title}
+              </h3>
             </div>
 
             <div className="flex items-center space-x-2 shrink-0">
@@ -282,7 +306,7 @@ export const PalitanaGallery = () => {
                 target="_blank"
                 rel="noreferrer"
                 className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-200 transition-colors"
-                title="Download Image"
+                title="Download High-Res Image"
               >
                 <Download className="w-4 h-4" />
               </a>
@@ -290,7 +314,7 @@ export const PalitanaGallery = () => {
               <button
                 onClick={closeLightbox}
                 className="p-2 rounded-lg bg-red-800/80 hover:bg-red-700 text-white transition-colors"
-                title="Close Lightbox"
+                title="Close (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -298,12 +322,12 @@ export const PalitanaGallery = () => {
           </div>
 
           {/* Central Image with Navigation Chevrons */}
-          <div className="relative w-full max-w-4xl max-h-[75vh] flex items-center justify-center">
+          <div className="relative w-full max-w-5xl max-h-[75vh] flex items-center justify-center">
             {/* Prev Button */}
             <button
-              onClick={prevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors z-20"
-              title="Previous Image"
+              onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black/90 text-amber-200 transition-all z-20 border border-[#C59B27]/40 shadow-xl"
+              title="Previous (Left Arrow)"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -312,7 +336,7 @@ export const PalitanaGallery = () => {
             <img
               src={filteredImages[selectedImageIndex].imageUrl}
               alt={filteredImages[selectedImageIndex].title}
-              className="max-h-[72vh] w-auto max-w-full object-contain rounded-lg shadow-2xl border border-yatra-gold/30"
+              className="max-h-[72vh] w-auto max-w-full object-contain rounded-xl shadow-2xl border-2 border-[#C59B27]/40"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = '/images/gallery/palitana-panoramic.jpg';
@@ -321,22 +345,24 @@ export const PalitanaGallery = () => {
 
             {/* Next Button */}
             <button
-              onClick={nextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white transition-colors z-20"
-              title="Next Image"
+              onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/70 hover:bg-black/90 text-amber-200 transition-all z-20 border border-[#C59B27]/40 shadow-xl"
+              title="Next (Right Arrow)"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
           </div>
 
           {/* Bottom Caption & Counter */}
-          <div className="w-full max-w-4xl mt-3 text-center px-4">
-            <p className="text-xs sm:text-sm text-amber-100 font-gujarati">
+          <div className="w-full max-w-5xl mt-3 text-center px-4 bg-stone-900/80 rounded-xl p-3 border border-stone-700/60">
+            <p className="text-xs sm:text-sm text-amber-100 font-gujarati leading-relaxed matra-safe">
               {filteredImages[selectedImageIndex].description}
             </p>
-            <span className="text-[11px] text-amber-300/70 mt-1 inline-block">
-              {selectedImageIndex + 1} of {filteredImages.length}
-            </span>
+            <div className="flex items-center justify-center space-x-2 text-[11px] text-amber-300/80 mt-1 font-gujarati">
+              <span>તસવીર {selectedImageIndex + 1} of {filteredImages.length}</span>
+              <span>•</span>
+              <span>કીબોર્ડ એરો કી અથવા બટન વડે આગળ-પાછળ કરો</span>
+            </div>
           </div>
         </div>
       )}

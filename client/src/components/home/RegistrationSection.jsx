@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { generateDevoteePassPDF } from '../../utils/pdfGenerator';
 import { getApiUrl } from '../../config';
+import { DigitalYatrikPass } from '../common/DigitalYatrikPass';
+import { OrnamentalDivider } from '../common/OrnamentalDivider';
 
 export const RegistrationSection = () => {
   // Form State
@@ -295,21 +297,21 @@ export const RegistrationSection = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-          <div className="inline-flex items-center space-x-2 px-4 py-1 rounded-full bg-yatra-maroon/10 border border-yatra-gold/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati">
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-[#C59B27]/40 text-yatra-maroon font-semibold text-xs uppercase tracking-wider font-gujarati shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
             <span>ઓનલાઇન યાત્રિક નોંધણી ફોર્મ</span>
-            <Sparkles className="w-3.5 h-3.5 text-yatra-goldDark" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C59B27]" />
           </div>
 
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-yatra-maroon font-gujarati tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-yatra-maroon font-gujaratiSerif tracking-tight matra-safe">
             Shri Shatrunjay 99 Yatra Registration
           </h2>
-          <p className="text-sm sm:text-base text-gray-700 font-gujarati">
+          <p className="text-sm sm:text-base text-gray-700 font-gujarati matra-safe">
             શ્રી શત્રુંજય ગિરિરાજ ૯૯ યાત્રા માટે આપની તથા પરિવારની માહિતી નીચે આપેલા ફોર્મમાં ભરી રજીસ્ટ્રેશન કન્ફર્મ કરો.
           </p>
 
-          <div className="w-24 h-1 bg-gradient-to-r from-transparent via-yatra-gold to-transparent mx-auto mt-2"></div>
+          <OrnamentalDivider className="my-2" />
         </div>
 
         {/* Duplicate Error Alert if already registered */}
@@ -353,112 +355,26 @@ export const RegistrationSection = () => {
           </div>
         )}
 
-        {/* SUCCESS CONFIRMATION RECEIPT CARD */}
+        {/* SUCCESS CONFIRMATION - ORNATE ROYAL DIGITAL YATRIK PASS */}
         {successData ? (
-          <div className="bg-white rounded-3xl border-4 border-yatra-gold p-6 sm:p-10 shadow-gold-lg relative overflow-hidden animate-fadeIn">
-            {/* Top Celebratory Header */}
-            <div className="text-center space-y-3 border-b-2 border-yatra-gold/30 pb-6">
+          <div className="max-w-3xl mx-auto">
+            {/* Top Celebratory Banner */}
+            <div className="text-center mb-6 space-y-2">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md border-2 border-emerald-400">
                 <CheckCircle className="w-10 h-10" />
               </div>
-              <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-serifHeading">
+              <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest font-serifHeading block">
                 REGISTRATION CONFIRMED • JAI JINENDRA
               </span>
-              <h3 className="text-2xl sm:text-3xl font-bold text-yatra-maroon font-gujarati">
+              <h3 className="text-2xl sm:text-3xl font-bold text-yatra-maroon font-gujaratiSerif matra-safe">
                 અભિનંદન! યાત્રા રજીસ્ટ્રેશન સફળ થયું છે.
               </h3>
-              <p className="text-sm text-gray-600 font-gujarati max-w-xl mx-auto">
-                શ્રી શત્રુંજય ગિરિરાજ ૯૯ યાત્રા સંઘમાં આપનું રજીસ્ટ્રેશન નોંધાઈ ગયું છે. આપનો રજીસ્ટ્રેશન આઇડી નીચે મુજબ છે:
+              <p className="text-sm text-gray-600 font-gujarati max-w-xl mx-auto matra-safe">
+                શ્રી શત્રુંજય ગિરિરાજ ૯૯ યાત્રા સંઘમાં આપનું રજીસ્ટ્રેશન નોંધાઈ ગયું છે. આપનો સત્તાવાર ડિજિટલ યાત્રિક પાસ નીચે મુજબ છે:
               </p>
-
-              {/* Unique Registration ID Badge */}
-              <div className="inline-block bg-gradient-to-r from-yatra-maroon via-yatra-maroonLight to-yatra-maroon text-amber-100 py-3 px-8 rounded-2xl shadow-maroon-lg border-2 border-yatra-gold font-mono text-xl sm:text-2xl font-black tracking-widest">
-                {successData.registrationId}
-              </div>
             </div>
 
-            {/* Submitted Summary Details */}
-            <div id="printable-receipt" className="py-6 space-y-4 text-sm font-gujarati">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-yatra-cream/60 p-5 rounded-2xl border border-yatra-gold/20">
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">મુખ્ય યાત્રિકનું નામ (Lead Devotee):</span>
-                  <span className="text-base font-bold text-yatra-charcoal">{successData.fullName}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">મોબાઈલ નંબર (Mobile):</span>
-                  <span className="font-semibold text-yatra-charcoal">{successData.mobileNumber}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">ઈમેલ (Email):</span>
-                  <span className="font-semibold text-yatra-charcoal">{successData.email}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">શહેર (City & State):</span>
-                  <span className="font-semibold text-yatra-charcoal">{successData.city}, {successData.state} ({successData.pincode})</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">કેટેગરી (Category):</span>
-                  <span className="font-semibold text-yatra-maroon">{successData.registrationCategory}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 font-bold block">કુલ યાત્રિકોની સંખ્યા (Participants):</span>
-                  <span className="font-bold text-yatra-maroon">{successData.totalParticipants} વ્યક્તિ</span>
-                </div>
-                {successData.doliAssistanceRequired && (
-                  <div className="sm:col-span-2 text-amber-800 bg-amber-100/70 p-2 rounded-lg text-xs font-semibold">
-                    ✦ ડોળી / પાલખી સહાયની વિનંતી નોંધાઈ છે (Doli Assistance Requested).
-                  </div>
-                )}
-              </div>
-
-              {/* Family members breakdown */}
-              {successData.familyMembers && successData.familyMembers.length > 0 && (
-                <div className="border border-yatra-gold/30 rounded-2xl overflow-hidden mt-4">
-                  <div className="bg-yatra-maroon text-amber-100 text-xs font-bold px-4 py-2 font-gujarati">
-                    સાથે આવનાર પરિવારના સભ્યો ({successData.familyMembers.length})
-                  </div>
-                  <div className="divide-y divide-gray-100 bg-white">
-                    {successData.familyMembers.map((m, idx) => (
-                      <div key={idx} className="p-3 text-xs flex items-center justify-between">
-                        <span className="font-semibold text-yatra-charcoal">
-                          {idx + 1}. {m.name} ({m.relation})
-                        </span>
-                        <span className="text-gray-500">{m.gender}, {m.age} વર્ષ</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons: PDF Pass Download, Print, New Register */}
-            <div className="pt-4 border-t-2 border-yatra-gold/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <button
-                onClick={() => generateDevoteePassPDF(successData)}
-                className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-yatra-maroon to-yatra-maroonLight hover:from-yatra-maroonLight hover:to-yatra-maroon text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 font-gujarati text-sm"
-              >
-                <FileDown className="w-5 h-5 text-amber-200" />
-                <span>યાત્રા પાસ ડાઉનલોડ કરો (Download PDF Pass)</span>
-              </button>
-
-              <div className="flex items-center space-x-3 w-full sm:w-auto">
-                <button
-                  onClick={() => window.print()}
-                  className="flex-1 sm:flex-initial px-4 py-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-gujarati"
-                >
-                  <Printer className="w-4 h-4 text-gray-500" />
-                  <span>પ્રિન્ટ રસીદ (Print)</span>
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  className="flex-1 sm:flex-initial px-4 py-3 bg-yatra-sand hover:bg-amber-200/60 border border-yatra-gold text-yatra-maroon font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5 text-xs sm:text-sm font-gujarati"
-                >
-                  <RefreshCw className="w-4 h-4 text-yatra-goldDark" />
-                  <span>બીજું ફોર્મ ભરો (New)</span>
-                </button>
-              </div>
-            </div>
+            <DigitalYatrikPass registration={successData} onReset={handleReset} />
           </div>
         ) : (
           /* MAIN REGISTRATION FORM */
