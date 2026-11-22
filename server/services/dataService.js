@@ -232,5 +232,7 @@ function generateRegistrationId(allRegistrations = []) {
 
 module.exports = {
   seedDefaultData,
-  generateRegistrationId
+  generateRegistrationId,
+  defaultGallery,
+  defaultAnnouncements
 };

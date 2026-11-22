@@ -1,5 +1,6 @@
 const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Gallery = require('../models/Gallery');
+const { defaultGallery } = require('../services/dataService');
 
 // GET /api/gallery
 exports.getGallery = async (req, res) => {
@@ -8,17 +9,42 @@ exports.getGallery = async (req, res) => {
 
     if (isConnectedToMongo()) {
       const query = category && category !== 'All' ? { category } : {};
-      const images = await Gallery.find(query).sort({ order: 1, createdAt: -1 });
+      let images = await Gallery.find(query).sort({ order: 1, createdAt: -1 });
+
+      // If Atlas gallery is empty, auto-seed default sacred images so gallery is never blank
+      if (images.length === 0) {
+        const total = await Gallery.countDocuments();
+        if (total === 0 && defaultGallery && defaultGallery.length > 0) {
+          try {
+            await Gallery.insertMany(defaultGallery);
+            images = await Gallery.find(query).sort({ order: 1, createdAt: -1 });
+          } catch (seedErr) {
+            console.error('Auto-seed gallery error:', seedErr.message);
+          }
+        }
+      }
+
+      // Fallback to default gallery array if still empty
+      if (images.length === 0 && defaultGallery) {
+        images = (category && category !== 'All')
+          ? defaultGallery.filter(img => img.category === category)
+          : defaultGallery;
+      }
+
       return res.json({ success: true, count: images.length, images });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
-      let list = db.gallery || [];
+      let list = db.gallery && db.gallery.length > 0 ? db.gallery : defaultGallery;
       if (category && category !== 'All') {
         list = list.filter(img => img.category === category);
       }
       return res.json({ success: true, count: list.length, images: list });
     } else {
-      return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
+      // In production even if Atlas is briefly waking up, return default gallery so users see images
+      const list = (category && category !== 'All')
+        ? defaultGallery.filter(img => img.category === category)
+        : defaultGallery;
+      return res.json({ success: true, count: list.length, images: list });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

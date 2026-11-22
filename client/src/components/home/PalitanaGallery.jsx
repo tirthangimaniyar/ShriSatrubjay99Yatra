@@ -2,9 +2,114 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Maximize2, X, ChevronLeft, ChevronRight, Download, Filter } from 'lucide-react';
 import { getApiUrl } from '../../config';
 
+// Built-in high quality gallery images as guaranteed fallback
+const defaultGalleryImages = [
+  {
+    _id: "gal_1",
+    title: "શ્રી શત્રુંજય ગિરિરાજ દર્શન - પાલિતાણા",
+    gujaratiTitle: "શ્રી શત્રુંજય મહાતીર્થ ગિરિરાજ સમગ્ર દર્શન",
+    category: "Palitana Giriraj",
+    imageUrl: "/images/gallery/palitana-panoramic.jpg",
+    description: "શાશ્વત ગિરિરાજ પર સ્થિત દેવવિમાન સમાન પાવન જિનાલયોની નયનરમ્ય હારમાળા.",
+    isFeatured: true,
+    order: 1
+  },
+  {
+    _id: "gal_2",
+    name: "દાદા આદેશ્વર ભગવાન સોનાના શૃંગારમાં",
+    title: "શ્રી આદિનાથ ભગવાન - મૂળનાયક શ્રી શત્રુંજય",
+    gujaratiTitle: "મૂળનાયક શ્રી આદિનાથ દાદા ભવ્ય સુવર્ણ આંગી દર્શન",
+    category: "Tirthankar Idols",
+    imageUrl: "/images/hero-idol.png",
+    description: "શ્રી શત્રુંજય ગિરિરાજના અધિષ્ઠાયક દેવ પ્રથમ તીર્થંકર શ્રી ઋષભદેવ (આદિનાથ) ભગવાન.",
+    isFeatured: true,
+    order: 2
+  },
+  {
+    _id: "gal_3",
+    title: "પૂજ્ય પ્રભુજી ફૂલ અને દીપકના અલૌકિક શણગારમાં",
+    gujaratiTitle: "તીર્થંકર પરમાત્મા દિવ્ય પુષ્પ અને દીપ શણગાર દર્શન",
+    category: "Tirthankar Idols",
+    imageUrl: "/images/dada-idol.jpeg",
+    description: "હજારો શ્વેત અને રક્ત પુષ્પોની માળા વચ્ચે ઝગમગતા દીવડાઓ સાથે પરમાત્માની ભક્તિ.",
+    isFeatured: true,
+    order: 3
+  },
+  {
+    _id: "gal_4",
+    title: "અદ્ભુત આરસની કોતરણી અને કલાકૃતિ",
+    gujaratiTitle: "જિનાલય સ્થાપત્ય અને અજોડ શિલ્પકળા",
+    category: "Derasar Architecture",
+    imageUrl: "/images/gallery/marble-carvings-derasar.jpg",
+    description: "શ્રી શત્રુંજય ગિરિરાજ પર આવેલા દેરાસરોની વિશ્વવિખ્યાત આરસ શિલ્પકળા.",
+    isFeatured: false,
+    order: 4
+  },
+  {
+    _id: "gal_5",
+    title: "શત્રુંજય ગિરિરાજ સૂર્યોદય વેળા",
+    gujaratiTitle: "શાશ્વતા ગિરિના પથ પર પ્રભાત વંદના",
+    category: "Palitana Giriraj",
+    imageUrl: "/images/gallery/shatrunjay-mountain-sunrise.jpg",
+    description: "પ્રાતઃકાળે ગિરિરાજની યાત્રા કરતા ભાવિક ભક્તોનો ભક્તિભાવ.",
+    isFeatured: false,
+    order: 5
+  },
+  {
+    _id: "gal_6",
+    title: "ગગનચુંબી જિનાલય શિખરો",
+    gujaratiTitle: "પાવન જિનમંદિર શિખર અને ધ્વજાદંડ",
+    category: "Derasar Architecture",
+    imageUrl: "/images/gallery/temple-spires-shikhara.jpg",
+    description: "આકાશને આંબતા ભવ્ય શિખરો અને ફરફરતી પવિત્ર ધજાઓ.",
+    isFeatured: false,
+    order: 6
+  },
+  {
+    _id: "gal_7",
+    title: "ગિરિરાજ ચઢાણના પવિત્ર પગથિયાં",
+    gujaratiTitle: "યાત્રા માર્ગ - ભક્તિ અને તપશ્ચર્યાના સોપાન",
+    category: "Yatra Path",
+    imageUrl: "/images/gallery/sacred-pilgrimage-steps.jpg",
+    description: "દરેક પગલે કર્મની નિર્જરા કરાવતા પાલિતાણા ગિરિરાજના ૩૮૦૦ થી વધુ પગથિયાં.",
+    isFeatured: false,
+    order: 7
+  },
+  {
+    _id: "gal_8",
+    title: "ભાવિકોની આરાધના અને જાપ",
+    gujaratiTitle: "નવ્વાણુ યાત્રા દરમિયાન સામુહિક આરાધના",
+    category: "Religious Ceremonies",
+    imageUrl: "/images/gallery/devotees-ceremony-aaradhna.jpg",
+    description: "૯૯ યાત્રા દરમિયાન ભક્તિભાવ સાથે ચૈત્યવંદન અને નવકાર મહામંત્ર જાપ.",
+    isFeatured: false,
+    order: 8
+  },
+  {
+    _id: "gal_9",
+    title: "પ્રાચીન સ્તંભ અને શિલ્પ વારસો",
+    gujaratiTitle: "પ્રાચીન સ્તંભ અને જિનાલય વારસો",
+    category: "Derasar Architecture",
+    imageUrl: "/images/gallery/ancient-pillars-heritage.jpg",
+    description: "શ્રી શત્રુંજય મહાતીર્થના પ્રાચીન સ્તંભો અને પવિત્ર શિલ્પો.",
+    isFeatured: false,
+    order: 9
+  },
+  {
+    _id: "gal_10",
+    title: "શ્રી શત્રુંજય તીર્થ ભવ્ય દર્શન",
+    gujaratiTitle: "તીર્થરાજ શત્રુંજય ભવ્ય દર્શન",
+    category: "Palitana Giriraj",
+    imageUrl: "/images/gallery/temple-view.jpg",
+    description: "ગિરિરાજ પરથી દેરાસરોનો નયનરમ્ય અને મનમોહક નજારો.",
+    isFeatured: false,
+    order: 10
+  }
+];
+
 export const PalitanaGallery = () => {
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState(defaultGalleryImages);
+  const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
@@ -18,20 +123,21 @@ export const PalitanaGallery = () => {
   ];
 
   useEffect(() => {
+    let isMounted = true;
     const fetchGallery = async () => {
       try {
         const res = await fetch(getApiUrl('/api/gallery'));
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.success && data.images) {
+        if (isMounted && data.success && Array.isArray(data.images) && data.images.length > 0) {
           setImages(data.images);
         }
       } catch (err) {
-        console.error('Failed to load gallery:', err);
-      } finally {
-        setLoading(false);
+        // Silently preserve defaultGalleryImages so UI is never blank
       }
     };
     fetchGallery();
+    return () => { isMounted = false; };
   }, []);
 
   const filteredImages = activeCategory === 'All'
@@ -98,11 +204,7 @@ export const PalitanaGallery = () => {
         </div>
 
         {/* Gallery Image Grid */}
-        {loading ? (
-          <div className="text-center py-16 text-yatra-maroon font-gujarati">
-            દર્શન તસવીરો લોડ થઈ રહી છે...
-          </div>
-        ) : filteredImages.length === 0 ? (
+        {filteredImages.length === 0 ? (
           <div className="text-center py-16 text-gray-500 font-gujarati bg-white rounded-2xl border border-dashed border-gray-300">
             આ કેટેગરીમાં હાલ કોઈ તસવીરો ઉપલબ્ધ નથી.
           </div>
@@ -121,6 +223,10 @@ export const PalitanaGallery = () => {
                     alt={img.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                     loading="lazy"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/images/gallery/palitana-panoramic.jpg';
+                    }}
                   />
                   {/* Subtle hover overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -207,6 +313,10 @@ export const PalitanaGallery = () => {
               src={filteredImages[selectedImageIndex].imageUrl}
               alt={filteredImages[selectedImageIndex].title}
               className="max-h-[72vh] w-auto max-w-full object-contain rounded-lg shadow-2xl border border-yatra-gold/30"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/images/gallery/palitana-panoramic.jpg';
+              }}
             />
 
             {/* Next Button */}
