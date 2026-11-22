@@ -80,6 +80,24 @@ const defaultGallery = [
     description: "૯૯ યાત્રા દરમિયાન ભક્તિભાવ સાથે ચૈત્યવંદન અને નવકાર મહામંત્ર જાપ.",
     isFeatured: false,
     order: 8
+  },
+  {
+    title: "પ્રાચીન સ્તંભ અને શિલ્પ વારસો",
+    gujaratiTitle: "પ્રાચીન સ્તંભ અને જિનાલય વારસો",
+    category: "Derasar Architecture",
+    imageUrl: "/images/gallery/ancient-pillars-heritage.jpg",
+    description: "શ્રી શત્રુંજય મહાતીર્થના પ્રાચીન સ્તંભો અને પવિત્ર શિલ્પો.",
+    isFeatured: false,
+    order: 9
+  },
+  {
+    title: "શ્રી શત્રુંજય તીર્થ ભવ્ય દર્શન",
+    gujaratiTitle: "તીર્થરાજ શત્રુંજય ભવ્ય દર્શન",
+    category: "Palitana Giriraj",
+    imageUrl: "/images/gallery/temple-view.jpg",
+    description: "ગિરિરાજ પરથી દેરાસરોનો નયનરમ્ય અને મનમોહક નજારો.",
+    isFeatured: false,
+    order: 10
   }
 ];
 

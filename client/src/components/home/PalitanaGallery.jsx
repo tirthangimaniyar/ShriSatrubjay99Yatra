@@ -216,12 +216,12 @@ export const PalitanaGallery = () => {
                 onClick={() => openLightbox(index)}
                 className="group relative bg-white rounded-2xl overflow-hidden border-2 border-yatra-gold/30 hover:border-yatra-gold shadow-sm hover:shadow-gold transition-all duration-300 cursor-pointer flex flex-col"
               >
-                {/* Image Container */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+                {/* Image Container - Enforcing 16:9 Landscape Aspect Ratio */}
+                <div className="relative aspect-video overflow-hidden bg-stone-100">
                   <img
                     src={img.imageUrl}
                     alt={img.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
+                    className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-108"
                     loading="lazy"
                     onError={(e) => {
                       e.target.onerror = null;
