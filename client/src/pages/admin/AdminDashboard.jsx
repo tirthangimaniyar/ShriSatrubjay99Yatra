@@ -1184,8 +1184,11 @@ export const AdminDashboard = () => {
                   <span className="font-semibold text-gray-900">{selectedReg.createdAt ? new Date(selectedReg.createdAt).toLocaleString('en-IN') : '-'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 block font-bold">સમયાવધિ (Expires At):</span>
-                  <span className="font-semibold text-amber-700">{selectedReg.expiresAt ? new Date(selectedReg.expiresAt).toLocaleString('en-IN') : '૨ કલાક (2 Hours)'}</span>
+                  <span className="text-gray-500 block font-bold">રેકોર્ડ સ્થિતિ (Record Type):</span>
+                  <span className="font-semibold text-emerald-700 flex items-center space-x-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 inline" />
+                    <span>કાયમી સંગ્રહિત (Permanent Active Record)</span>
+                  </span>
                 </div>
               </div>
 

@@ -1,14 +1,11 @@
 const { isConnectedToMongo, canUseFallback, jsonStore } = require('../config/db');
 const Registration = require('../models/Registration');
 
-// GET /api/admin/dashboard (Comprehensive Dynamic Statistics - Excludes Expired Records)
+// GET /api/admin/dashboard (Comprehensive Dynamic Statistics - All Permanent Records)
 exports.getDashboardStats = async (req, res) => {
   try {
-    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    const activeFilter = { expiresAt: { $gt: now } };
 
     if (isConnectedToMongo()) {
       const [
@@ -21,14 +18,14 @@ exports.getDashboardStats = async (req, res) => {
         recentRegistrations,
         allRegs
       ] = await Promise.all([
-        Registration.countDocuments(activeFilter),
-        Registration.countDocuments({ ...activeFilter, status: 'Pending' }),
-        Registration.countDocuments({ ...activeFilter, status: 'Confirmed' }),
-        Registration.countDocuments({ ...activeFilter, status: { $in: ['Cancelled', 'Rejected'] } }),
-        Registration.countDocuments({ ...activeFilter, status: 'Waitlist' }),
-        Registration.countDocuments({ ...activeFilter, createdAt: { $gte: today } }),
-        Registration.find(activeFilter).sort({ createdAt: -1 }).limit(8),
-        Registration.find(activeFilter).select('totalParticipants city registrationCategory doliAssistanceRequired')
+        Registration.countDocuments(),
+        Registration.countDocuments({ status: 'Pending' }),
+        Registration.countDocuments({ status: 'Confirmed' }),
+        Registration.countDocuments({ status: { $in: ['Cancelled', 'Rejected'] } }),
+        Registration.countDocuments({ status: 'Waitlist' }),
+        Registration.countDocuments({ createdAt: { $gte: today } }),
+        Registration.find().sort({ createdAt: -1 }).limit(8),
+        Registration.find().select('totalParticipants city registrationCategory doliAssistanceRequired')
       ]);
 
       const totalParticipants = allRegs.reduce((acc, curr) => acc + (curr.totalParticipants || 1), 0);
@@ -70,7 +67,7 @@ exports.getDashboardStats = async (req, res) => {
       });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
-      const regs = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
+      const regs = db.registrations || [];
 
       const totalRegistrations = regs.length;
       const totalParticipants = regs.reduce((sum, r) => sum + (r.totalParticipants || 1), 0);
@@ -125,18 +122,15 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
-// GET /api/admin/db-status (Detailed Production MongoDB Atlas & TTL Index Verification)
+// GET /api/admin/db-status (Detailed Production MongoDB Atlas Verification)
 exports.getDbStatus = async (req, res) => {
   try {
-    const { isConnectedToMongo, getLastMongoError, isTtlIndexVerified, getMongoConfig } = require('../config/db');
+    const { isConnectedToMongo, getLastMongoError, getMongoConfig } = require('../config/db');
     let indexes = [];
-    let activeRegistrations = 0;
     let totalInDb = 0;
 
     if (isConnectedToMongo()) {
       indexes = await Registration.collection.indexes();
-      const now = new Date();
-      activeRegistrations = await Registration.countDocuments({ expiresAt: { $gt: now } });
       totalInDb = await Registration.countDocuments();
     }
 
@@ -163,11 +157,9 @@ exports.getDbStatus = async (req, res) => {
         uriType: mongoConfig.uri.startsWith('mongodb+srv') ? 'mongodb+srv' : (mongoConfig.uri ? 'mongodb' : 'none'),
         uriHost: mongoConfig.host,
         databaseName: mongoConfig.dbName,
-        ttlIndexVerified: isTtlIndexVerified(),
         lastError: lastErr,
         diagnosis: atlasDiagnosis,
-        activeRegistrations,
-        totalInDb,
+        totalRegistrations: totalInDb,
         indexes
       }
     });

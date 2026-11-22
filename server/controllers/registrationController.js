@@ -115,21 +115,15 @@ exports.createRegistration = async (req, res) => {
     const totalParticipants = 1 + parsedFamilyMembers.length;
 
     const now = new Date();
-    // Expiry exactly 2 hours after creation
-    const expiresAt = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-    // Check duplicate registrations (only among non-expired active registrations)
+    // Check duplicate registrations (permanent active records, excluding cancelled)
     if (isConnectedToMongo()) {
       const duplicate = await Registration.findOne({
-        $and: [
-          {
-            $or: [
-              { mobileNumber: cleanMobile },
-              { email: cleanEmail }
-            ]
-          },
-          { expiresAt: { $gt: now } }
-        ]
+        $or: [
+          { mobileNumber: cleanMobile },
+          { email: cleanEmail }
+        ],
+        status: { $ne: 'Cancelled' }
       });
 
       if (duplicate) {
@@ -141,8 +135,8 @@ exports.createRegistration = async (req, res) => {
         });
       }
 
-      const allActiveRegs = await Registration.find({ expiresAt: { $gt: now } }).select('registrationId');
-      const registrationId = generateRegistrationId(allActiveRegs);
+      const allRegs = await Registration.find().select('registrationId');
+      const registrationId = generateRegistrationId(allRegs);
 
       const newRegistration = await Registration.create({
         registrationId,
@@ -175,7 +169,6 @@ exports.createRegistration = async (req, res) => {
         isDeclarationConfirmed: true,
         status: 'Pending',
         createdAt: now,
-        expiresAt: expiresAt,
         updatedAt: now
       });
 
@@ -189,7 +182,7 @@ exports.createRegistration = async (req, res) => {
       const db = jsonStore.read();
       const existing = (db.registrations || []).find(r =>
         (r.mobileNumber === cleanMobile || r.email.toLowerCase() === cleanEmail) &&
-        r.expiresAt && new Date(r.expiresAt) > now
+        r.status !== 'Cancelled'
       );
 
       if (existing) {
@@ -201,8 +194,7 @@ exports.createRegistration = async (req, res) => {
         });
       }
 
-      const activeRegs = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
-      const registrationId = generateRegistrationId(activeRegs);
+      const registrationId = generateRegistrationId(db.registrations || []);
 
       const newReg = {
         _id: 'reg_' + Date.now(),
@@ -236,7 +228,6 @@ exports.createRegistration = async (req, res) => {
         isDeclarationConfirmed: true,
         status: 'Pending',
         createdAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
         updatedAt: now.toISOString()
       };
 
@@ -277,26 +268,19 @@ exports.lookupRegistration = async (req, res) => {
     }
 
     const cleanMobile = query.replace(/\D/g, '').slice(-10);
-    const now = new Date();
 
     if (isConnectedToMongo()) {
-      // Exclude expired records (older than 2 hours) even before MongoDB TTL background sweep runs
       const reg = await Registration.findOne({
-        $and: [
-          {
-            $or: [
-              { registrationId: { $regex: new RegExp(`^${query}$`, 'i') } },
-              ...(cleanMobile.length === 10 ? [{ mobileNumber: cleanMobile }] : [])
-            ]
-          },
-          { expiresAt: { $gt: now } }
+        $or: [
+          { registrationId: { $regex: new RegExp(`^${query}$`, 'i') } },
+          ...(cleanMobile.length === 10 ? [{ mobileNumber: cleanMobile }] : [])
         ]
       });
 
       if (!reg) {
         return res.status(404).json({
           success: false,
-          message: 'કોઈ સક્રિય રજીસ્ટ્રેશન મળ્યું નથી અથવા ૨ કલાકની સમયાવધિ પૂર્ણ થઈ ગઈ છે. (No active registration found. Registrations expire 2 hours after creation.)'
+          message: 'કોઈ રજીસ્ટ્રેશન મળ્યું નથી. કૃપા કરીને દાખલ કરેલ રજીસ્ટ્રેશન આઇડી અથવા મોબાઈલ નંબર ચકાસો.'
         });
       }
 
@@ -304,15 +288,14 @@ exports.lookupRegistration = async (req, res) => {
     } else if (canUseFallback()) {
       const db = jsonStore.read();
       const reg = (db.registrations || []).find(r =>
-        (r.registrationId.toUpperCase() === query.toUpperCase() ||
-        (cleanMobile.length === 10 && r.mobileNumber === cleanMobile)) &&
-        r.expiresAt && new Date(r.expiresAt) > now
+        r.registrationId.toUpperCase() === query.toUpperCase() ||
+        (cleanMobile.length === 10 && r.mobileNumber === cleanMobile)
       );
 
       if (!reg) {
         return res.status(404).json({
           success: false,
-          message: 'કોઈ સક્રિય રજીસ્ટ્રેશન મળ્યું નથી અથવા ૨ કલાકની સમયાવધિ પૂર્ણ થઈ ગઈ છે. (No active registration found. Registrations expire 2 hours after creation.)'
+          message: 'કોઈ રજીસ્ટ્રેશન મળ્યું નથી. કૃપા કરીને દાખલ કરેલ રજીસ્ટ્રેશન આઇડી અથવા મોબાઈલ નંબર ચકાસો.'
         });
       }
 
@@ -338,13 +321,8 @@ exports.getAllRegistrations = async (req, res) => {
       limit = 100,
     } = req.query;
 
-    const now = new Date();
-
     if (isConnectedToMongo()) {
-      // Exclude expired registrations from the admin list
-      const query = {
-        expiresAt: { $gt: now }
-      };
+      const query = {};
 
       if (status && status !== 'All') {
         query.status = status;
@@ -383,8 +361,8 @@ exports.getAllRegistrations = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(Number(limit));
 
-      // Distinct cities for filter dropdown among active registrations
-      const cities = await Registration.distinct('city', { expiresAt: { $gt: now } });
+      // Distinct cities for filter dropdown
+      const cities = await Registration.distinct('city');
 
       return res.json({
         success: true,
@@ -396,7 +374,7 @@ exports.getAllRegistrations = async (req, res) => {
       });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
-      let list = (db.registrations || []).filter(r => r.expiresAt && new Date(r.expiresAt) > now);
+      let list = db.registrations || [];
 
       if (status && status !== 'All') {
         list = list.filter(r => r.status === status);
@@ -435,7 +413,7 @@ exports.getAllRegistrations = async (req, res) => {
       const startIndex = (page - 1) * limit;
       const pagedList = list.slice(startIndex, startIndex + Number(limit));
 
-      const cities = Array.from(new Set(db.registrations.map(r => r.city))).sort();
+      const cities = Array.from(new Set((db.registrations || []).map(r => r.city))).sort();
 
       return res.json({
         success: true,
@@ -457,25 +435,20 @@ exports.getAllRegistrations = async (req, res) => {
 exports.getRegistrationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const now = new Date();
 
     if (isConnectedToMongo()) {
       const reg = await Registration.findOne({
-        $and: [
-          { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }] },
-          { expiresAt: { $gt: now } }
-        ]
+        $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }]
       });
 
-      if (!reg) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (!reg) return res.status(404).json({ success: false, message: 'Registration not found' });
       return res.json({ success: true, registration: reg });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
       const reg = (db.registrations || []).find(r =>
-        (r._id === id || r.registrationId === id) &&
-        r.expiresAt && new Date(r.expiresAt) > now
+        r._id === id || r.registrationId === id
       );
-      if (!reg) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (!reg) return res.status(404).json({ success: false, message: 'Registration not found' });
       return res.json({ success: true, registration: reg });
     } else {
       return res.status(503).json({ success: false, message: 'Database service is temporarily unavailable.' });
@@ -490,32 +463,25 @@ exports.updateRegistration = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    const now = new Date();
-    updateData.updatedAt = now;
+    updateData.updatedAt = new Date();
 
     if (isConnectedToMongo()) {
       const updated = await Registration.findOneAndUpdate(
-        {
-          $and: [
-            { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }] },
-            { expiresAt: { $gt: now } }
-          ]
-        },
+        { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }] },
         updateData,
         { new: true, runValidators: true }
       );
 
-      if (!updated) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (!updated) return res.status(404).json({ success: false, message: 'Registration not found' });
       return res.json({ success: true, message: 'Registration updated successfully', registration: updated });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
       const idx = (db.registrations || []).findIndex(r =>
-        (r._id === id || r.registrationId === id) &&
-        r.expiresAt && new Date(r.expiresAt) > now
+        r._id === id || r.registrationId === id
       );
-      if (idx === -1) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (idx === -1) return res.status(404).json({ success: false, message: 'Registration not found' });
 
-      db.registrations[idx] = { ...db.registrations[idx], ...updateData, updatedAt: now.toISOString() };
+      db.registrations[idx] = { ...db.registrations[idx], ...updateData, updatedAt: new Date().toISOString() };
       jsonStore.write(db);
 
       return res.json({ success: true, message: 'Registration updated successfully', registration: db.registrations[idx] });
@@ -541,25 +507,19 @@ exports.updateRegistrationStatus = async (req, res) => {
 
     if (isConnectedToMongo()) {
       const updated = await Registration.findOneAndUpdate(
-        {
-          $and: [
-            { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }] },
-            { expiresAt: { $gt: now } }
-          ]
-        },
+        { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { registrationId: id }] },
         { status, adminRemarks: adminRemarks || '', updatedAt: now },
         { new: true }
       );
 
-      if (!updated) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (!updated) return res.status(404).json({ success: false, message: 'Registration not found' });
       return res.json({ success: true, message: `Status updated to ${status}`, registration: updated });
     } else if (canUseFallback()) {
       const db = jsonStore.read();
       const idx = (db.registrations || []).findIndex(r =>
-        (r._id === id || r.registrationId === id) &&
-        r.expiresAt && new Date(r.expiresAt) > now
+        r._id === id || r.registrationId === id
       );
-      if (idx === -1) return res.status(404).json({ success: false, message: 'Registration not found or expired' });
+      if (idx === -1) return res.status(404).json({ success: false, message: 'Registration not found' });
 
       db.registrations[idx].status = status;
       if (adminRemarks !== undefined) db.registrations[idx].adminRemarks = adminRemarks;

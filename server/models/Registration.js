@@ -154,17 +154,15 @@ const RegistrationSchema = new mongoose.Schema({
     default: Date.now,
     index: true,
   },
-  expiresAt: {
-    type: Date,
-    required: true,
-  },
   updatedAt: {
     type: Date,
     default: Date.now,
   }
 });
 
-// MongoDB TTL Index: Automatically expire records when expiresAt has passed (expireAfterSeconds: 0)
-RegistrationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Primary indexes for high-speed admin querying and duplicate detection
+RegistrationSchema.index({ mobileNumber: 1 });
+RegistrationSchema.index({ email: 1 });
+RegistrationSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Registration', RegistrationSchema);

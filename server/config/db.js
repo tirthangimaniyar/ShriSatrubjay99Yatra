@@ -252,6 +252,19 @@ const connectDB = async () => {
     lastMongoError = null;
     isConnecting = false;
     console.log('MongoDB Atlas Connected Successfully! readyState:', mongoose.connection.readyState);
+
+    // Safeguard: Drop legacy TTL index if it exists in MongoDB Atlas to ensure registrations NEVER expire
+    try {
+      const regCollection = mongoose.connection.collection('registrations');
+      const existingIndexes = await regCollection.indexes();
+      const ttlIdx = existingIndexes.find(idx => idx.name === 'expiresAt_1' || (idx.key && idx.key.expiresAt));
+      if (ttlIdx) {
+        await regCollection.dropIndex(ttlIdx.name);
+        console.log(`[Database Migration] Successfully dropped legacy TTL index "${ttlIdx.name}". Registrations are now permanently preserved in MongoDB Atlas.`);
+      }
+    } catch (dropErr) {
+      // Collection may not exist yet on fresh cluster or index already dropped
+    }
   } catch (err) {
     lastMongoError = err;
     isConnecting = false;
